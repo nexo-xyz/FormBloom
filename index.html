@@ -13,6 +13,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <!-- เพิ่ม LZ-String library สำหรับบีบอัดข้อมูล -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -1717,150 +1718,59 @@
         const { useState, useEffect, useCallback, useRef } = React;
 
         // ========== GOOGLE SHEETS CONFIGURATION ==========
-        // URL ของ Google Apps Script Web App (หลังจาก Deploy แล้วให้ใส่ URL จริงตรงนี้)
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqsYO_bSsEtQqZ64qMxuQiMZePL9Ge64-o_2KGC8a4Y_WGz1e5rb4_VgEfThdfw30M/exec';
-
-        // ตั้งค่าเป็น false เพื่อใช้ Google Sheets API จริง
-        // ตั้งค่าเป็น true ชั่วคราวหาก Google Apps Script ยังไม่พร้อม (ใช้หน่วยความจำชั่วคราวแทน)
-        const USE_MEMORY_FALLBACK = true;
-
-        // ========== GOOGLE SHEETS API SERVICE ==========
-        // หน่วยความจำชั่วคราวสำหรับกรณีที่ API ยังไม่พร้อม (ข้อมูลจะหายเมื่อรีเฟรช)
-        const MemoryStore = {
-            forms: [],
-            settings: {
-                siteName: 'FormBloom',
-                siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม',
-                logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB',
-                primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6',
-                bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif",
-                bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr'
-            }
+        // ระบบใช้ Google Sheets เป็นฐานข้อมูลกลางเท่านั้น
+        // ทุกเบราว์เซอร์จะอ่าน/เขียนข้อมูลจาก Sheets เดียวกัน
+        const GOOGLE_SHEETS_CONFIG = {
+            scriptURL: 'https://script.google.com/macros/s/AKfycbwQJyjn4qC9gm1NXvGMqkbRF56Gt1vdMRt29DyZxOU9GBCbuDKB7utM_keQTBM3UXT2/exec'
         };
 
-        // บริการเรียก Google Apps Script API
-        const GoogleSheetsAPI = {
-            // เรียก API แบบ POST
+        // Google Apps Script Service — ติดต่อ Google Sheets เป็นฐานข้อมูลกลาง
+        // ใช้ Content-Type: text/plain เพื่อหลบ CORS preflight ของ Apps Script Web App
+        const GoogleSheetsService = {
             async call(action, data = {}) {
-                // ถ้าใช้ Memory Fallback
-                if (USE_MEMORY_FALLBACK) {
-                    console.log(`[Memory Fallback] Action: ${action}`, data);
-                    return this.handleMemoryFallback(action, data);
+                if (!GOOGLE_SHEETS_CONFIG.scriptURL) {
+                    throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script URL');
                 }
-
                 try {
-                    const formData = new FormData();
-                    formData.append('action', action);
-                    formData.append('data', JSON.stringify(data));
-
-                    const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    const response = await fetch(GOOGLE_SHEETS_CONFIG.scriptURL, {
                         method: 'POST',
-                        body: formData
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action, ...data }),
+                        redirect: 'follow'
                     });
-
-                    const result = await response.json();
-
-                    if (!result.success) {
-                        throw new Error(result.error || 'API Error');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
                     }
-
-                    return result;
+                    return await response.json();
                 } catch (error) {
-                    console.error(`Google Sheets API Error (${action}):`, error);
-                    // ถ้า API ล้มเหลว ให้ใช้ Memory Fallback แทน
-                    console.warn('Falling back to memory storage');
-                    return this.handleMemoryFallback(action, data);
+                    console.error(`[GAS] ${action} failed:`, error);
+                    return { success: false, error: error.message };
                 }
             },
 
-            // จัดการข้อมูลในหน่วยความจำ (Fallback)
-            handleMemoryFallback(action, data) {
-                switch (action) {
-                    case 'getForms':
-                        return { success: true, data: MemoryStore.forms };
-
-                    case 'saveForm': {
-                        const form = data.form;
-                        const existingIndex = MemoryStore.forms.findIndex(f => f.id === form.id);
-                        if (existingIndex >= 0) {
-                            MemoryStore.forms[existingIndex] = form;
-                        } else {
-                            MemoryStore.forms.push(form);
-                        }
-                        return { success: true, data: form };
-                    }
-
-                    case 'deleteForm': {
-                        const formId = data.formId;
-                        MemoryStore.forms = MemoryStore.forms.filter(f => f.id !== formId);
-                        return { success: true };
-                    }
-
-                    case 'saveResponse': {
-                        const { formId, response } = data;
-                        const form = MemoryStore.forms.find(f => f.id === formId);
-                        if (form) {
-                            if (!form.responses) form.responses = [];
-                            form.responses.push(response);
-                        }
-                        return { success: true };
-                    }
-
-                    case 'getSettings':
-                        return { success: true, data: MemoryStore.settings };
-
-                    case 'saveSettings': {
-                        MemoryStore.settings = { ...MemoryStore.settings, ...data.settings };
-                        return { success: true };
-                    }
-
-                    default:
-                        return { success: false, error: 'Unknown action' };
-                }
-            },
-
-            // ดึงข้อมูลฟอร์มทั้งหมด
             async getForms() {
                 const result = await this.call('getForms');
-                return result.data || [];
+                return Array.isArray(result.data) ? result.data : [];
             },
-
-            // บันทึกฟอร์ม
             async saveForm(form) {
-                const result = await this.call('saveForm', { form });
-                return result;
+                return await this.call('saveForm', { form });
             },
-
-            // ลบฟอร์ม
             async deleteForm(formId) {
-                const result = await this.call('deleteForm', { formId });
-                return result;
+                return await this.call('deleteForm', { formId });
             },
-
-            // บันทึกคำตอบ
             async saveResponse(formId, response) {
-                const result = await this.call('saveResponse', { formId, response });
-                return result;
+                return await this.call('saveResponse', { formId, response });
             },
-
-            // ดึงการตั้งค่าเว็บไซต์
             async getSettings() {
                 const result = await this.call('getSettings');
-                return result.data || MemoryStore.settings;
+                return result.data && typeof result.data === 'object' ? result.data : {};
             },
-
-            // บันทึกการตั้งค่าเว็บไซต์
             async saveSettings(settings) {
-                const result = await this.call('saveSettings', { settings });
-                return result;
+                return await this.call('saveSettings', { settings });
             }
         };
 
-        // ฐานข้อมูลกลาง (จะถูกโหลดจาก Google Sheets)
-        const DB = {
-            forms: [],
-            adminPassword: 'admin1234'
-        };
+        const INITIAL_FORMS = [];
 
         const GOOGLE_FONTS = [
             { name: 'Noto Sans Thai', family: "'Noto Sans Thai', sans-serif", category: 'sans-serif' },
@@ -1886,58 +1796,58 @@
             { name: 'Athiti', family: "'Athiti', sans-serif", category: 'sans-serif' }
         ];
 
-        // จัดการการตั้งค่าเว็บไซต์ (อ่านจาก Google Sheets)
-        const SiteSettingsDB = {
-            data: {
-                siteName: 'FormBloom',
-                siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม',
-                logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB',
-                primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6',
-                bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif",
-                bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr'
-            },
+        const DEFAULT_SITE_SETTINGS = {
+            siteName: 'FormBloom',
+            siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม',
+            logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB',
+            primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6',
+            bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif",
+            bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr'
+        };
 
+        // SiteSettingsDB — เก็บค่าใน memory เท่านั้น โหลดจาก Google Sheets ตอนเปิดเว็บ
+        // ทุกเบราว์เซอร์จะใช้ค่าชุดเดียวกันจาก Sheets
+        const SiteSettingsDB = {
+            data: { ...DEFAULT_SITE_SETTINGS },
             get() {
                 return this.data;
             },
-
             async load() {
                 try {
-                    const settings = await GoogleSheetsAPI.getSettings();
-                    this.data = { ...this.data, ...settings };
-                    this.applyTheme();
-                    this.applyFonts();
+                    const remote = await GoogleSheetsService.getSettings();
+                    if (remote && Object.keys(remote).length > 0) {
+                        this.data = { ...DEFAULT_SITE_SETTINGS, ...remote };
+                    }
                 } catch (e) {
-                    console.error('Failed to load settings:', e);
+                    console.error('Failed to load settings from Sheets:', e);
                 }
+                this.applyTheme(); this.applyFonts();
+                return this.data;
             },
-
             async save(settings) {
                 this.data = { ...this.data, ...settings };
-                await GoogleSheetsAPI.saveSettings(this.data);
-                this.applyTheme();
-                this.applyFonts();
+                this.applyTheme(); this.applyFonts();
+                try {
+                    await GoogleSheetsService.saveSettings(this.data);
+                } catch (e) {
+                    console.error('Failed to save settings to Sheets:', e);
+                    throw e;
+                }
             },
-
             applyTheme() {
-                const r = document.documentElement;
-                const s = this.data;
+                const r = document.documentElement; const s = this.get();
                 r.style.setProperty('--pink-500', s.primaryColor);
                 r.style.setProperty('--pink-600', s.secondaryColor);
                 r.style.setProperty('--pink-300', s.accentColor);
                 r.style.setProperty('--pink-50', s.backgroundColor);
             },
-
             applyFonts() {
-                const r = document.documentElement;
-                const s = this.data;
+                const r = document.documentElement; const s = this.get();
                 r.style.setProperty('--font-th', s.bodyFont);
                 r.style.setProperty('--font-display', s.displayFont);
             }
         };
-
-        SiteSettingsDB.applyTheme();
-        SiteSettingsDB.applyFonts();
+        SiteSettingsDB.applyTheme(); SiteSettingsDB.applyFonts();
 
         const PRESET_THEMES = {
             pink: { name: 'ชมพู', primary: '#f54d8f', secondary: '#e0317a', light: '#ffe3ef' },
@@ -1952,16 +1862,11 @@
 
         function getFormTheme(form) {
             if (!form) return PRESET_THEMES.pink;
-            if (form.customTheme) {
-                return {
-                    name: 'กำหนดเอง',
-                    primary: form.customTheme.primary,
-                    secondary: form.customTheme.secondary,
-                    light: form.customTheme.primary + '20',
-                    gradient: `linear-gradient(135deg, ${form.customTheme.primary}, ${form.customTheme.secondary})`,
-                    isCustom: true
-                };
-            }
+            if (form.customTheme) return {
+                name: 'กำหนดเอง', primary: form.customTheme.primary, secondary: form.customTheme.secondary,
+                light: form.customTheme.primary + '20',
+                gradient: `linear-gradient(135deg, ${form.customTheme.primary}, ${form.customTheme.secondary})`, isCustom: true
+            };
             const p = PRESET_THEMES[form.theme] || PRESET_THEMES.pink;
             return { ...p, gradient: `linear-gradient(135deg, ${p.primary}, ${p.secondary})`, isCustom: false };
         }
@@ -1973,10 +1878,7 @@
             const [d, m, y] = parts.map(Number);
             return new Date(y - 543, m - 1, d);
         }
-
-        function getLatestDate(form) {
-            return parseThaiDate(form.updatedAt || form.createdAt);
-        }
+        function getLatestDate(form) { return parseThaiDate(form.updatedAt || form.createdAt); }
 
         const SwalHelper = {
             success: (msg) => Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: msg, confirmButtonColor: SiteSettingsDB.get().primaryColor, confirmButtonText: 'ตกลง' }),
@@ -1994,34 +1896,48 @@
             })
         };
 
-        // ฟังก์ชันบีบอัดและขยายข้อมูลสำหรับแชร์ลิงก์
+        // ========== ฟังก์ชันบีบอัดและขยายข้อมูล ==========
+        // ใช้ compressToEncodedURIComponent ซึ่ง output เป็น URL-safe อยู่แล้ว
+        // ไม่ต้องผ่าน btoa (ที่ใช้ไม่ได้กับ UTF-16 ทำให้สร้างลิงก์ไม่สำเร็จ)
         const Compressor = {
             encodeForm(form) {
                 try {
+                    if (typeof LZString === 'undefined') {
+                        console.error('LZString library not loaded');
+                        return null;
+                    }
                     const jsonStr = JSON.stringify(form);
-                    const compressed = LZString.compressToUTF16(jsonStr);
-                    return btoa(compressed)
-                        .replace(/\+/g, '-')
-                        .replace(/\//g, '_')
-                        .replace(/=+$/, '');
+                    return LZString.compressToEncodedURIComponent(jsonStr);
                 } catch (e) {
                     console.error('Encode error:', e);
                     return null;
                 }
             },
-
             decodeForm(encoded) {
                 try {
-                    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-                    while (base64.length % 4) base64 += '=';
-                    const compressed = atob(base64);
-                    const jsonStr = LZString.decompressFromUTF16(compressed);
-                    return JSON.parse(jsonStr);
+                    if (typeof LZString === 'undefined') return null;
+                    // รองรับลิงก์เก่า (Base64 + UTF16) ด้วย — ลองวิธีใหม่ก่อน
+                    let jsonStr = LZString.decompressFromEncodedURIComponent(encoded);
+                    if (!jsonStr) {
+                        // fallback ลิงก์เก่า
+                        try {
+                            let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+                            while (base64.length % 4) base64 += '=';
+                            const compressed = atob(base64);
+                            jsonStr = LZString.decompressFromUTF16(compressed);
+                        } catch (_) { /* ignore */ }
+                    }
+                    return jsonStr ? JSON.parse(jsonStr) : null;
                 } catch (e) {
                     console.error('Decode error:', e);
                     return null;
                 }
             }
+        };
+
+        const DB = {
+            forms: INITIAL_FORMS,
+            adminPassword: 'admin1234'
         };
 
         function useToast() {
@@ -2078,15 +1994,8 @@
             const handle = () => {
                 setLoading(true);
                 setTimeout(() => {
-                    if (pw === DB.adminPassword) {
-                        onLogin();
-                        toast.show('เข้าสู่ระบบแอดมินสำเร็จ 🌸');
-                        SwalHelper.success('ยินดีต้อนรับสู่แดชบอร์ด');
-                    } else {
-                        setErr('รหัสผ่านไม่ถูกต้อง');
-                        SwalHelper.error('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่');
-                        setLoading(false);
-                    }
+                    if (pw === DB.adminPassword) { onLogin(); toast.show('เข้าสู่ระบบแอดมินสำเร็จ 🌸'); SwalHelper.success('ยินดีต้อนรับสู่แดชบอร์ด'); }
+                    else { setErr('รหัสผ่านไม่ถูกต้อง'); SwalHelper.error('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่'); setLoading(false); }
                 }, 600);
             };
             return React.createElement('div', { className: 'login-wrap' },
@@ -2164,11 +2073,11 @@
             );
         }
 
-        function FormListPage({ setMode, setCurrentFormId, forms }) {
+        function FormListPage({ setMode, setCurrentFormId }) {
             const [page, setPage] = useState(1);
             const perPage = 10;
             const s = SiteSettingsDB.get();
-            const sorted = [...forms].sort((a, b) => getLatestDate(b) - getLatestDate(a));
+            const sorted = [...DB.forms].sort((a, b) => getLatestDate(b) - getLatestDate(a));
             const total = Math.ceil(sorted.length / perPage);
             const items = sorted.slice((page - 1) * perPage, page * perPage);
 
@@ -2233,8 +2142,8 @@
             );
         }
 
-        function FillFormPage({ formId, setMode, toast, forms, onFormsUpdate }) {
-            const form = forms.find(f => f.id === formId);
+        function FillFormPage({ formId, setMode, toast }) {
+            const form = DB.forms.find(f => f.id === formId);
             const [answers, setAnswers] = useState({});
             const [submitted, setSubmitted] = useState(false);
             const [errors, setErrors] = useState({});
@@ -2243,18 +2152,16 @@
             const perPage = 10;
             const s = SiteSettingsDB.get();
 
-            if (!form) {
-                return React.createElement('div', { className: 'page-container' },
-                    React.createElement('div', { className: 'empty-state' },
-                        React.createElement('div', { className: 'empty-icon' }, '🔍'),
-                        React.createElement('div', { className: 'empty-title' }, 'ไม่พบฟอร์มนี้'),
-                        React.createElement('div', { className: 'empty-text' }, 'ลิงก์นี้อาจไม่ถูกต้อง หรือฟอร์มถูกลบไปแล้ว'),
-                        React.createElement('button', { className: 'btn btn-primary mt-4', onClick: () => setMode('home') },
-                            React.createElement('i', { className: 'fas fa-home' }), ' กลับหน้าแรก'
-                        )
+            if (!form) return React.createElement('div', { className: 'page-container' },
+                React.createElement('div', { className: 'empty-state' },
+                    React.createElement('div', { className: 'empty-icon' }, '🔍'),
+                    React.createElement('div', { className: 'empty-title' }, 'ไม่พบฟอร์มนี้'),
+                    React.createElement('div', { className: 'empty-text' }, 'ลิงก์นี้อาจไม่ถูกต้อง หรือฟอร์มถูกลบไปแล้ว'),
+                    React.createElement('button', { className: 'btn btn-primary mt-4', onClick: () => setMode('home') },
+                        React.createElement('i', { className: 'fas fa-home' }), ' กลับหน้าแรก'
                     )
-                );
-            }
+                )
+            );
 
             const theme = getFormTheme(form);
             const totalQPages = Math.ceil(form.questions.length / perPage);
@@ -2264,14 +2171,8 @@
 
             const validate = () => {
                 const e = {};
-                form.questions.forEach(q => {
-                    if (q.required) {
-                        const a = answers[q.id];
-                        if (!a || (Array.isArray(a) && a.length === 0) || a === '') e[q.id] = true;
-                    }
-                });
-                setErrors(e);
-                return Object.keys(e).length === 0;
+                form.questions.forEach(q => { if (q.required) { const a = answers[q.id]; if (!a || (Array.isArray(a) && a.length === 0) || a === '') e[q.id] = true; } });
+                setErrors(e); return Object.keys(e).length === 0;
             };
 
             const handleSubmit = async () => {
@@ -2289,18 +2190,12 @@
                     answers
                 };
 
-                // อัปเดตในหน่วยความจำ
-                if (!form.responses) form.responses = [];
                 form.responses.push(response);
 
                 try {
-                    // บันทึกไปยัง Google Sheets
-                    await GoogleSheetsAPI.saveResponse(form.id, response);
-                    // อัปเดตฟอร์มใน Google Sheets
-                    await GoogleSheetsAPI.saveForm(form);
-                    onFormsUpdate();
+                    await GoogleSheetsService.saveResponse(form.id, response);
                 } catch (error) {
-                    console.error('Failed to save response:', error);
+                    console.error('Failed to save to Google Sheets:', error);
                 }
 
                 setSubmitted(true);
@@ -2309,21 +2204,19 @@
                 SwalHelper.success(`ส่งคำตอบสำเร็จ! ขอบคุณที่สละเวลา`);
             };
 
-            if (submitted) {
-                return React.createElement('div', { className: 'user-form-wrap' },
-                    React.createElement('div', { className: 'card' },
-                        React.createElement('div', { className: 'success-screen' },
-                            React.createElement('div', { className: 'success-icon', style: { background: theme.gradient } }, React.createElement('i', { className: 'fas fa-check' })),
-                            React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 'var(--text-xl)', fontWeight: 600, marginBottom: 8 } }, 'ส่งคำตอบสำเร็จแล้ว!'),
-                            React.createElement('div', { style: { color: 'var(--gray-400)', fontSize: 'var(--text-sm)', marginBottom: 24 } }, 'ขอบคุณที่กรอกฟอร์ม "', form.title, '"'),
-                            React.createElement('div', { style: { display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' } },
-                                React.createElement('button', { className: 'btn btn-primary', style: { background: theme.gradient }, onClick: () => { setAnswers({}); setSubmitted(false); setQPage(1); } }, React.createElement('i', { className: 'fas fa-redo' }), ' กรอกใหม่'),
-                                React.createElement('button', { className: 'btn btn-ghost', onClick: () => setMode('formlist') }, React.createElement('i', { className: 'fas fa-list' }), ' ดูฟอร์มอื่น')
-                            )
+            if (submitted) return React.createElement('div', { className: 'user-form-wrap' },
+                React.createElement('div', { className: 'card' },
+                    React.createElement('div', { className: 'success-screen' },
+                        React.createElement('div', { className: 'success-icon', style: { background: theme.gradient } }, React.createElement('i', { className: 'fas fa-check' })),
+                        React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 'var(--text-xl)', fontWeight: 600, marginBottom: 8 } }, 'ส่งคำตอบสำเร็จแล้ว!'),
+                        React.createElement('div', { style: { color: 'var(--gray-400)', fontSize: 'var(--text-sm)', marginBottom: 24 } }, 'ขอบคุณที่กรอกฟอร์ม "', form.title, '"'),
+                        React.createElement('div', { style: { display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' } },
+                            React.createElement('button', { className: 'btn btn-primary', style: { background: theme.gradient }, onClick: () => { setAnswers({}); setSubmitted(false); setQPage(1); } }, React.createElement('i', { className: 'fas fa-redo' }), ' กรอกใหม่'),
+                            React.createElement('button', { className: 'btn btn-ghost', onClick: () => setMode('formlist') }, React.createElement('i', { className: 'fas fa-list' }), ' ดูฟอร์มอื่น')
                         )
                     )
-                );
-            }
+                )
+            );
 
             return React.createElement('div', { className: 'user-form-wrap' },
                 React.createElement('div', { style: { marginBottom: 14 } }, React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: () => setMode('formlist') }, React.createElement('i', { className: 'fas fa-arrow-left' }), ' กลับ')),
@@ -2380,56 +2273,28 @@
             );
         }
 
-        function SiteSettings({ toast, onSettingsUpdate }) {
+        function SiteSettings({ toast }) {
             const [settings, setSettings] = useState(() => SiteSettingsDB.get());
             const [tab, setTab] = useState('general');
             const [fontSearch, setFontSearch] = useState('');
             const [fontCat, setFontCat] = useState('all');
             const upd = (u) => setSettings(s => ({ ...s, ...u }));
             const updFont = (type, name) => {
-                const font = GOOGLE_FONTS.find(f => f.name === name);
-                if (!font) return;
+                const font = GOOGLE_FONTS.find(f => f.name === name); if (!font) return;
                 if (type === 'body') upd({ bodyFont: font.family, bodyFontName: font.name });
                 else upd({ displayFont: font.family, displayFontName: font.name });
             };
-            const save = async () => {
-                await SiteSettingsDB.save(settings);
-                onSettingsUpdate();
-                toast.show('บันทึกการตั้งค่าเรียบร้อยแล้ว 🎨');
-                SwalHelper.success('บันทึกการตั้งค่าเว็บไซต์เรียบร้อยแล้ว!');
-            };
+            const save = () => { SiteSettingsDB.save(settings); toast.show('บันทึกการตั้งค่าเรียบร้อยแล้ว 🎨'); SwalHelper.success('บันทึกการตั้งค่าเว็บไซต์เรียบร้อยแล้ว!'); };
             const reset = async () => {
                 const r = await SwalHelper.confirmDelete('รีเซ็ตการตั้งค่า?', 'คุณแน่ใจหรือไม่ที่จะรีเซ็ตทั้งหมด?');
                 if (r.isConfirmed) {
-                    const def = {
-                        siteName: 'FormBloom',
-                        siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม',
-                        logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB',
-                        primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6',
-                        bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif",
-                        bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr'
-                    };
-                    setSettings(def);
-                    await SiteSettingsDB.save(def);
-                    onSettingsUpdate();
-                    toast.show('รีเซ็ตการตั้งค่าแล้ว 🔄');
+                    const def = { siteName: 'FormBloom', siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม', logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB', primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6', bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif", bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr' };
+                    setSettings(def); SiteSettingsDB.save(def); toast.show('รีเซ็ตการตั้งค่าแล้ว 🔄');
                 }
             };
-            const icons = [
-                { value: 'fa-feather-alt', label: 'ขนนก' },
-                { value: 'fa-file-alt', label: 'เอกสาร' },
-                { value: 'fa-clipboard-list', label: 'คลิปบอร์ด' },
-                { value: 'fa-pen', label: 'ปากกา' },
-                { value: 'fa-star', label: 'ดาว' },
-                { value: 'fa-heart', label: 'หัวใจ' },
-                { value: 'fa-crown', label: 'มงกุฎ' },
-                { value: 'fa-gem', label: 'เพชร' }
-            ];
+            const icons = [{ value: 'fa-feather-alt', label: 'ขนนก' }, { value: 'fa-file-alt', label: 'เอกสาร' }, { value: 'fa-clipboard-list', label: 'คลิปบอร์ด' }, { value: 'fa-pen', label: 'ปากกา' }, { value: 'fa-star', label: 'ดาว' }, { value: 'fa-heart', label: 'หัวใจ' }, { value: 'fa-crown', label: 'มงกุฎ' }, { value: 'fa-gem', label: 'เพชร' }];
             const cats = ['all', ...new Set(GOOGLE_FONTS.map(f => f.category))];
-            const filteredFonts = GOOGLE_FONTS.filter(f =>
-                f.name.toLowerCase().includes(fontSearch.toLowerCase()) &&
-                (fontCat === 'all' || f.category === fontCat)
-            );
+            const filteredFonts = GOOGLE_FONTS.filter(f => f.name.toLowerCase().includes(fontSearch.toLowerCase()) && (fontCat === 'all' || f.category === fontCat));
 
             return React.createElement('div', null,
                 React.createElement('div', { className: 'page-header' },
@@ -2544,25 +2409,51 @@
         }
 
         function GoogleSheetsConfig({ toast }) {
-            const [scriptURL, setScriptURL] = useState(GOOGLE_SCRIPT_URL);
+            const [scriptURL, setScriptURL] = useState(GOOGLE_SHEETS_CONFIG.scriptURL);
+            const [testing, setTesting] = useState(false);
             const s = SiteSettingsDB.get();
+
+            const saveConfig = async () => {
+                const trimmed = (scriptURL || '').trim();
+                if (!trimmed.startsWith('https://script.google.com/')) {
+                    toast.show('กรุณาใส่ URL ที่ขึ้นต้นด้วย https://script.google.com/', 'error');
+                    return;
+                }
+                GOOGLE_SHEETS_CONFIG.scriptURL = trimmed;
+                toast.show('อัปเดต URL แล้ว — กำลังทดสอบเชื่อมต่อ...', 'success');
+                setTesting(true);
+                const result = await GoogleSheetsService.call('getForms');
+                setTesting(false);
+                if (result.success) {
+                    SwalHelper.success('เชื่อมต่อ Google Sheets สำเร็จ! ✅\nเพื่อให้ค่านี้ถาวร โปรดแก้ค่า scriptURL ในไฟล์ index.html ด้วย');
+                } else {
+                    SwalHelper.error('เชื่อมต่อไม่สำเร็จ: ' + (result.error || 'unknown'));
+                }
+            };
 
             return React.createElement('div', { className: 'setting-section' },
                 React.createElement('div', { className: 'section-title' },
-                    React.createElement('i', { className: 'fab fa-google' }), ' ตั้งค่า Google Sheets API'
+                    React.createElement('i', { className: 'fab fa-google' }), ' ตั้งค่า Google Sheets'
                 ),
                 React.createElement('div', { className: 'info-box' },
                     React.createElement('i', { className: 'fas fa-info-circle' }),
                     React.createElement('div', null,
-                        React.createElement('strong', null, 'วิธีเชื่อมต่อ Google Sheets:'),
+                        React.createElement('strong', null, 'ระบบใช้ Google Sheets เป็นฐานข้อมูลกลาง'),
                         React.createElement('br', null),
-                        '1. สร้าง Google Sheet ใหม่',
+                        '✅ ทุกเบราว์เซอร์จะเห็นข้อมูลชุดเดียวกัน',
                         React.createElement('br', null),
-                        '2. เปิด Apps Script (ส่วนขยาย > Apps Script)',
+                        '✅ ไม่ใช้ localStorage แล้ว',
                         React.createElement('br', null),
-                        '3. วางโค้ด Google Apps Script',
                         React.createElement('br', null),
-                        '4. Deploy เป็น Web App และคัดลอก URL มาใส่ด้านล่าง'
+                        React.createElement('strong', null, 'วิธีตั้งค่า:'),
+                        React.createElement('br', null),
+                        '1. สร้าง Google Sheet ใหม่ → ส่วนขยาย > Apps Script',
+                        React.createElement('br', null),
+                        '2. วางโค้ดจากไฟล์ code.gs แล้ว Deploy เป็น Web App',
+                        React.createElement('br', null),
+                        '3. ตั้ง "Execute as: Me" และ "Who has access: Anyone"',
+                        React.createElement('br', null),
+                        '4. คัดลอก URL ที่ได้มาใส่ด้านล่าง'
                     )
                 ),
                 React.createElement('div', { className: 'form-group' },
@@ -2572,31 +2463,23 @@
                         type: 'url',
                         placeholder: 'https://script.google.com/macros/s/.../exec',
                         value: scriptURL,
-                        onChange: e => setScriptURL(e.target.value),
-                        disabled: true
+                        onChange: e => setScriptURL(e.target.value)
                     })
                 ),
-                React.createElement('div', { className: 'info-box', style: { background: '#dbeafe', borderColor: '#bfdbfe', color: '#1d4ed8' } },
-                    React.createElement('i', { className: 'fas fa-database' }),
-                    React.createElement('div', null,
-                        React.createElement('strong', null, 'โหมดการทำงานปัจจุบัน:'),
-                        React.createElement('br', null),
-                        USE_MEMORY_FALLBACK ? 'ใช้หน่วยความจำชั่วคราว (Memory Fallback) - ข้อมูลจะหายเมื่อรีเฟรช' : 'เชื่อมต่อกับ Google Sheets API แล้ว'
-                    )
-                ),
-                React.createElement('p', { style: { fontSize: 13, color: 'var(--gray-500)', marginTop: 16 } },
-                    React.createElement('i', { className: 'fas fa-check-circle', style: { color: '#10b981' } }), ' ระบบถูกออกแบบให้บันทึกข้อมูลทั้งหมดผ่าน Google Sheets API โดยไม่ใช้ LocalStorage'
+                React.createElement('button', { className: 'btn btn-primary', onClick: saveConfig, disabled: testing },
+                    React.createElement('i', { className: testing ? 'fas fa-spinner fa-spin' : 'fas fa-plug' }),
+                    testing ? ' กำลังทดสอบ...' : ' ทดสอบและใช้ URL นี้'
                 )
             );
         }
 
-        function AdminPanel({ setMode, toast, forms, onFormsUpdate, onSettingsUpdate }) {
+        function AdminPanel({ setMode, toast }) {
             const [menu, setMenu] = useState('forms');
+            const [forms, setForms] = useState(() => [...DB.forms].sort((a, b) => getLatestDate(b) - getLatestDate(a)));
             const [editing, setEditing] = useState(null);
             const [viewResp, setViewResp] = useState(null);
             const [page, setPage] = useState(1);
             const perPage = 10;
-
             const items = [
                 { id: 'forms', icon: 'fas fa-file-alt', label: 'ฟอร์มทั้งหมด' },
                 { id: 'create', icon: 'fas fa-plus-circle', label: 'สร้างฟอร์มใหม่' },
@@ -2604,53 +2487,36 @@
                 { id: 'settings', icon: 'fas fa-cog', label: 'ตั้งค่าเว็บ' },
                 { id: 'sheets', icon: 'fab fa-google', label: 'Google Sheets' },
             ];
-
-            const sortedForms = [...forms].sort((a, b) => getLatestDate(b) - getLatestDate(a));
-
+            const refresh = () => { const s = [...DB.forms].sort((a, b) => getLatestDate(b) - getLatestDate(a)); setForms(s); };
             const handleDelete = async (id) => {
-                const f = forms.find(x => x.id === id);
+                const f = DB.forms.find(x => x.id === id);
                 const r = await SwalHelper.confirmDelete(`ลบฟอร์ม "${f?.title}"?`, 'ฟอร์มและคำตอบทั้งหมดจะถูกลบถาวร');
                 if (r.isConfirmed) {
-                    try {
-                        await GoogleSheetsAPI.deleteForm(id);
-                        onFormsUpdate();
-                        toast.show('ลบฟอร์มแล้ว');
-                        Swal.fire({ icon: 'success', title: 'ลบสำเร็จ!', text: `"${f?.title}" ถูกลบแล้ว`, confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
-                    } catch (error) {
-                        toast.show('เกิดข้อผิดพลาดในการลบฟอร์ม', 'error');
-                    }
+                    const i = DB.forms.findIndex(x => x.id === id); if (i > -1) DB.forms.splice(i, 1);
+                    await GoogleSheetsService.deleteForm(id);
+                    refresh(); toast.show('ลบฟอร์มแล้ว');
+                    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ!', text: `"${f?.title}" ถูกลบแล้ว`, confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
                 }
             };
-
             const handleSave = async (data) => {
                 let savedForm;
                 if (editing) {
-                    savedForm = { ...editing, ...data, updatedAt: new Date().toLocaleDateString('th-TH') };
+                    const i = DB.forms.findIndex(x => x.id === editing.id);
+                    if (i > -1) {
+                        savedForm = { ...editing, ...data, updatedAt: new Date().toLocaleDateString('th-TH') };
+                        DB.forms[i] = savedForm;
+                    }
                     Swal.fire({ icon: 'success', title: 'อัพเดทสำเร็จ!', confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
                 } else {
-                    savedForm = {
-                        id: 'form_' + Date.now(),
-                        ...data,
-                        createdAt: new Date().toLocaleDateString('th-TH'),
-                        responses: []
-                    };
+                    savedForm = { id: 'form_' + Date.now(), ...data, createdAt: new Date().toLocaleDateString('th-TH'), responses: [] };
+                    DB.forms.unshift(savedForm);
                     Swal.fire({ icon: 'success', title: 'สร้างสำเร็จ! 🎉', confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
                 }
-
-                try {
-                    await GoogleSheetsAPI.saveForm(savedForm);
-                    onFormsUpdate();
-                    setEditing(null);
-                    setMenu('forms');
-                    setPage(1);
-                    toast.show(editing ? 'แก้ไขฟอร์มสำเร็จ 🌸' : 'สร้างฟอร์มใหม่สำเร็จ 🎉');
-                } catch (error) {
-                    toast.show('เกิดข้อผิดพลาดในการบันทึกฟอร์ม', 'error');
-                }
+                await GoogleSheetsService.saveForm(savedForm);
+                refresh(); setEditing(null); setMenu('forms'); setPage(1);
+                toast.show(editing ? 'แก้ไขฟอร์มสำเร็จ 🌸' : 'สร้างฟอร์มใหม่สำเร็จ 🎉');
             };
-
             const s = SiteSettingsDB.get();
-
             return React.createElement('div', { className: 'page-container' },
                 React.createElement('div', { style: { marginBottom: 24 } },
                     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 } },
@@ -2665,44 +2531,18 @@
                     React.createElement('div', { className: 'admin-sidebar' },
                         React.createElement('div', { className: 'sidebar-inner' },
                             React.createElement('div', { className: 'sidebar-section-label' }, 'เมนูหลัก'),
-                            items.map(m => React.createElement('div', {
-                                key: m.id,
-                                className: `sidebar-item ${menu === m.id && !viewResp && !editing ? 'active' : ''}`,
-                                onClick: () => { setMenu(m.id); setViewResp(null); if (m.id !== 'create') setEditing(null); }
-                            }, React.createElement('i', { className: m.icon }), m.label)),
+                            items.map(m => React.createElement('div', { key: m.id, className: `sidebar-item ${menu === m.id && !viewResp && !editing ? 'active' : ''}`, onClick: () => { setMenu(m.id); setViewResp(null); if (m.id !== 'create') setEditing(null); } },
+                                React.createElement('i', { className: m.icon }), m.label
+                            )),
                             React.createElement('div', { className: 'sidebar-divider' }),
-                            React.createElement('div', { className: 'sidebar-stat' },
-                                React.createElement('span', null, 'ฟอร์มทั้งหมด'),
-                                React.createElement('span', { className: 'badge badge-pink' }, forms.length)
-                            )
+                            React.createElement('div', { className: 'sidebar-stat' }, React.createElement('span', null, 'ฟอร์มทั้งหมด'), React.createElement('span', { className: 'badge badge-pink' }, DB.forms.length))
                         )
                     ),
                     React.createElement('div', { className: 'admin-content' },
-                        menu === 'forms' && !editing && !viewResp && React.createElement(AdminFormsList, {
-                            forms: sortedForms,
-                            onEdit: f => { setEditing(f); setMenu('create'); },
-                            onDelete: handleDelete,
-                            onNew: () => { setEditing(null); setMenu('create'); },
-                            onViewResp: f => { setViewResp(f); setMenu('responses'); },
-                            toast: toast,
-                            page: page,
-                            setPage: setPage,
-                            perPage: perPage
-                        }),
-                        menu === 'create' && React.createElement(FormBuilder, {
-                            key: editing?.id || 'new',
-                            initialForm: editing,
-                            onSave: handleSave,
-                            onCancel: () => { setEditing(null); setMenu('forms'); }
-                        }),
-                        menu === 'responses' && React.createElement(ResponsesView, {
-                            forms: forms,
-                            selected: viewResp
-                        }),
-                        menu === 'settings' && React.createElement(SiteSettings, {
-                            toast: toast,
-                            onSettingsUpdate: onSettingsUpdate
-                        }),
+                        menu === 'forms' && !editing && !viewResp && React.createElement(AdminFormsList, { forms: forms, onEdit: f => { setEditing(f); setMenu('create'); }, onDelete: handleDelete, onNew: () => { setEditing(null); setMenu('create'); }, onViewResp: f => { setViewResp(f); setMenu('responses'); }, toast: toast, page: page, setPage: setPage, perPage: perPage }),
+                        menu === 'create' && React.createElement(FormBuilder, { key: editing?.id || 'new', initialForm: editing, onSave: handleSave, onCancel: () => { setEditing(null); setMenu('forms'); } }),
+                        menu === 'responses' && React.createElement(ResponsesView, { forms: forms, selected: viewResp }),
+                        menu === 'settings' && React.createElement(SiteSettings, { toast: toast }),
                         menu === 'sheets' && React.createElement(GoogleSheetsConfig, { toast: toast })
                     )
                 )
@@ -2721,6 +2561,7 @@
                     return;
                 }
                 try {
+                    // ใช้ Compressor ในการบีบอัดข้อมูล
                     const encodedForm = Compressor.encodeForm(form);
                     if (!encodedForm) {
                         toast.show('ไม่สามารถสร้างลิงก์ได้', 'error');
@@ -2729,34 +2570,26 @@
 
                     const url = `${window.location.origin}${window.location.pathname}#form=${encodedForm}`;
                     navigator.clipboard?.writeText(url).catch(() => { });
-                    toast.show('📋 คัดลอก URL สำหรับแชร์แล้ว!', 'success');
+                    toast.show('📋 คัดลอก URL สำหรับแชร์แล้ว! (URL สั้นลงด้วยการบีบอัด)', 'success');
                     Swal.fire({
                         icon: 'success',
                         title: 'คัดลอกสำเร็จ!',
-                        html: `URL นี้สามารถแชร์ให้ใครก็ได้เปิดฟอร์มนี้`,
+                        html: `URL นี้สั้นลงด้วยการบีบอัดข้อมูล<br><small style="opacity:0.7">สามารถแชร์ให้ใครก็ได้เปิดฟอร์มนี้</small>`,
                         confirmButtonColor: SiteSettingsDB.get().primaryColor,
                         timer: 3000
                     });
                 } catch (e) {
                     toast.show('เกิดข้อผิดพลาดในการสร้างลิงก์', 'error');
+                    console.error(e);
                 }
             };
 
             return React.createElement('div', null,
                 React.createElement('div', { className: 'page-header' },
-                    React.createElement('div', null,
-                        React.createElement('div', { className: 'page-title', style: { fontFamily: s.displayFont } }, 'ฟอร์มทั้งหมด'),
-                        React.createElement('div', { className: 'page-subtitle' }, forms.length, ' ฟอร์ม')
-                    ),
+                    React.createElement('div', null, React.createElement('div', { className: 'page-title', style: { fontFamily: s.displayFont } }, 'ฟอร์มทั้งหมด'), React.createElement('div', { className: 'page-subtitle' }, forms.length, ' ฟอร์ม')),
                     React.createElement('button', { className: 'btn btn-primary', onClick: onNew }, React.createElement('i', { className: 'fas fa-plus' }), ' สร้างฟอร์มใหม่')
                 ),
-                forms.length === 0 && React.createElement('div', { className: 'card' },
-                    React.createElement('div', { className: 'empty-state' },
-                        React.createElement('div', { className: 'empty-icon' }, '📋'),
-                        React.createElement('div', { className: 'empty-title' }, 'ยังไม่มีฟอร์ม'),
-                        React.createElement('div', { className: 'empty-text' }, 'กดปุ่ม "สร้างฟอร์มใหม่" เพื่อเริ่มต้น')
-                    )
-                ),
+                forms.length === 0 && React.createElement('div', { className: 'card' }, React.createElement('div', { className: 'empty-state' }, React.createElement('div', { className: 'empty-icon' }, '📋'), React.createElement('div', { className: 'empty-title' }, 'ยังไม่มีฟอร์ม'), React.createElement('div', { className: 'empty-text' }, 'กดปุ่ม "สร้างฟอร์มใหม่" เพื่อเริ่มต้น'))),
                 React.createElement('div', { className: 'forms-grid' },
                     items.map(form => {
                         const theme = getFormTheme(form);
@@ -2771,16 +2604,17 @@
                                 React.createElement('div', { className: 'form-card-desc', style: { fontFamily: s.bodyFont } }, form.description),
                                 React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 } },
                                     React.createElement('span', { className: 'badge badge-pink' }, React.createElement('i', { className: 'fas fa-question-circle' }), ' ', form.questions.length, ' คำถาม'),
-                                    React.createElement('span', { className: 'badge badge-green' }, React.createElement('i', { className: 'fas fa-inbox' }), ' ', form.responses?.length || 0, ' คำตอบ'),
+                                    React.createElement('span', { className: 'badge badge-green' }, React.createElement('i', { className: 'fas fa-inbox' }), ' ', form.responses.length, ' คำตอบ'),
                                     React.createElement('span', { className: 'badge', style: { background: theme.light + '80', color: theme.secondary } },
                                         React.createElement('span', { className: 'color-dot', style: { background: theme.primary } }),
                                         theme.isCustom ? '🎨 กำหนดเอง' : theme.name
-                                    )
+                                    ),
+                                    form.updatedAt && React.createElement('span', { className: 'badge badge-blue' }, React.createElement('i', { className: 'fas fa-clock' }), ' อัพเดทแล้ว')
                                 )
                             ),
                             React.createElement('div', { className: 'url-box', onClick: () => copyUrl(form.id) },
                                 React.createElement('i', { className: 'fas fa-link' }),
-                                React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '📎 คลิกเพื่อคัดลอก URL สำหรับแชร์'),
+                                React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '📎 คลิกเพื่อคัดลอก URL สำหรับแชร์ (บีบอัดแล้ว)'),
                                 React.createElement('i', { className: 'fas fa-copy', style: { opacity: 0.7 } })
                             ),
                             React.createElement('div', { className: 'form-card-footer' },
@@ -2806,41 +2640,25 @@
             const [cover, setCover] = useState(initialForm?.coverImage || '');
             const [questions, setQuestions] = useState(initialForm?.questions || []);
             const s = SiteSettingsDB.get();
-
             const addQ = () => setQuestions(q => [...q, { id: 'q_' + Date.now(), text: '', type: 'text', required: false, options: ['ตัวเลือกที่ 1'] }]);
             const updQ = (id, field, val) => setQuestions(q => q.map(x => x.id === id ? { ...x, [field]: val } : x));
             const removeQ = id => setQuestions(q => q.filter(x => x.id !== id));
             const moveQ = (id, dir) => {
                 const i = questions.findIndex(x => x.id === id);
                 if ((dir === -1 && i === 0) || (dir === 1 && i === questions.length - 1)) return;
-                const arr = [...questions];
-                [arr[i], arr[i + dir]] = [arr[i + dir], arr[i]];
-                setQuestions(arr);
+                const arr = [...questions];[arr[i], arr[i + dir]] = [arr[i + dir], arr[i]]; setQuestions(arr);
             };
             const addOpt = qid => setQuestions(q => q.map(x => x.id === qid ? { ...x, options: [...(x.options || []), `ตัวเลือกที่ ${(x.options || []).length + 1}`] } : x));
             const updOpt = (qid, i, val) => setQuestions(q => q.map(x => x.id === qid ? { ...x, options: x.options.map((o, j) => j === i ? val : o) } : x));
             const removeOpt = (qid, i) => setQuestions(q => q.map(x => x.id === qid ? { ...x, options: x.options.filter((_, j) => j !== i) } : x));
-
             const handleSave = async () => {
                 if (!title.trim()) { await SwalHelper.error('กรุณาใส่ชื่อฟอร์ม'); return; }
                 if (questions.length === 0) { await SwalHelper.error('กรุณาเพิ่มอย่างน้อย 1 คำถาม'); return; }
                 const r = await SwalHelper.confirmSave(`${initialForm ? 'บันทึกการแก้ไข' : 'สร้างฟอร์ม'}?`, `ฟอร์ม "${title}"`);
-                if (r.isConfirmed) {
-                    onSave({
-                        title,
-                        description: desc,
-                        theme: useCustom ? 'pink' : theme,
-                        customTheme: useCustom ? { primary: cp, secondary: cs } : null,
-                        thumbnailImage: thumb,
-                        coverImage: cover,
-                        questions
-                    });
-                }
+                if (r.isConfirmed) onSave({ title, description: desc, theme: useCustom ? 'pink' : theme, customTheme: useCustom ? { primary: cp, secondary: cs } : null, thumbnailImage: thumb, coverImage: cover, questions });
             };
-
             const ct = useCustom ? { primary: cp, secondary: cs, light: cp + '20', gradient: `linear-gradient(135deg, ${cp}, ${cs})` } : { ...PRESET_THEMES[theme], gradient: `linear-gradient(135deg, ${PRESET_THEMES[theme].primary}, ${PRESET_THEMES[theme].secondary})` };
             const typeLabels = { text: 'ข้อความสั้น', textarea: 'ข้อความยาว', radio: 'ตัวเลือกเดียว', checkbox: 'ตัวเลือกหลายข้อ' };
-
             return React.createElement('div', null,
                 React.createElement('div', { className: 'page-header' },
                     React.createElement('div', null, React.createElement('div', { className: 'page-title' }, initialForm ? 'แก้ไขฟอร์ม' : 'สร้างฟอร์มใหม่')),
@@ -2951,119 +2769,65 @@
             const [active, setActive] = useState(selected || forms[0]);
             const chartRefs = useRef({});
             const s = SiteSettingsDB.get();
-
             useEffect(() => { if (selected) setActive(selected); }, [selected]);
-
             useEffect(() => {
                 if (!active) return;
                 const theme = getFormTheme(active);
                 active.questions.filter(q => q.type === 'radio' || q.type === 'checkbox').forEach(q => {
-                    const canvas = chartRefs.current[q.id];
-                    if (!canvas) return;
-                    const ex = Chart.getChart(canvas);
-                    if (ex) ex.destroy();
-                    const counts = {};
-                    (q.options || []).forEach(o => counts[o] = 0);
-                    (active.responses || []).forEach(r => {
-                        const a = r.answers[q.id];
-                        if (Array.isArray(a)) a.forEach(x => { if (counts[x] !== undefined) counts[x]++; });
-                        else if (a && counts[a] !== undefined) counts[a]++;
-                    });
+                    const canvas = chartRefs.current[q.id]; if (!canvas) return;
+                    const ex = Chart.getChart(canvas); if (ex) ex.destroy();
+                    const counts = {}; (q.options || []).forEach(o => counts[o] = 0);
+                    active.responses.forEach(r => { const a = r.answers[q.id]; if (Array.isArray(a)) a.forEach(x => { if (counts[x] !== undefined) counts[x]++; }); else if (a && counts[a] !== undefined) counts[a]++; });
                     const pal = [theme.primary, theme.secondary, theme.primary + 'cc', theme.secondary + 'cc', theme.primary + '99', theme.secondary + '99'];
-                    new Chart(canvas, {
-                        type: q.type === 'radio' ? 'doughnut' : 'bar',
-                        data: {
-                            labels: Object.keys(counts),
-                            datasets: [{ data: Object.values(counts), backgroundColor: pal, borderWidth: 0, borderRadius: q.type === 'checkbox' ? 6 : 0 }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: { position: q.type === 'radio' ? 'right' : 'bottom', labels: { font: { family: s.bodyFont, size: 11 }, padding: 8 } }
-                            },
-                            scales: q.type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {}
-                        }
-                    });
+                    new Chart(canvas, { type: q.type === 'radio' ? 'doughnut' : 'bar', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: pal, borderWidth: 0, borderRadius: q.type === 'checkbox' ? 6 : 0 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: q.type === 'radio' ? 'right' : 'bottom', labels: { font: { family: s.bodyFont, size: 11 }, padding: 8 } } }, scales: q.type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {} } });
                 });
             }, [active]);
-
-            if (!active) {
-                return React.createElement('div', { className: 'card' },
-                    React.createElement('div', { className: 'empty-state' },
-                        React.createElement('div', { className: 'empty-icon' }, '📊'),
-                        React.createElement('div', { className: 'empty-title' }, 'ไม่มีข้อมูล')
-                    )
-                );
-            }
-
+            if (!active) return React.createElement('div', { className: 'card' }, React.createElement('div', { className: 'empty-state' }, React.createElement('div', { className: 'empty-icon' }, '📊'), React.createElement('div', { className: 'empty-title' }, 'ไม่มีข้อมูล')));
             const theme = getFormTheme(active);
-            const responseCount = active.responses?.length || 0;
-
             return React.createElement('div', null,
-                React.createElement('div', { className: 'page-header' },
-                    React.createElement('div', null,
-                        React.createElement('div', { className: 'page-title' }, 'ผลคำตอบ'),
-                        React.createElement('div', { className: 'page-subtitle' }, active.title)
-                    )
-                ),
+                React.createElement('div', { className: 'page-header' }, React.createElement('div', null, React.createElement('div', { className: 'page-title' }, 'ผลคำตอบ'), React.createElement('div', { className: 'page-subtitle' }, active.title))),
                 React.createElement('div', { style: { marginBottom: 18 } },
                     React.createElement('select', { className: 'form-select', style: { maxWidth: 380, fontFamily: s.bodyFont }, value: active.id, onChange: e => { const f = forms.find(x => x.id === e.target.value); if (f) setActive(f); } },
                         forms.map(f => React.createElement('option', { key: f.id, value: f.id }, f.title))
                     )
                 ),
                 React.createElement('div', { className: 'stats-row' },
-                    [['คำตอบทั้งหมด', responseCount], ['จำนวนคำถาม', active.questions.length], ['คำถามบังคับ', active.questions.filter(q => q.required).length]].map(([label, num]) => (
-                        React.createElement('div', { key: label, className: 'stat-card' },
-                            React.createElement('div', { className: 'stat-number', style: { color: theme.primary, fontFamily: s.displayFont } }, num),
-                            React.createElement('div', { className: 'stat-label', style: { fontFamily: s.bodyFont } }, label)
-                        )
+                    [['คำตอบทั้งหมด', active.responses.length], ['จำนวนคำถาม', active.questions.length], ['คำถามบังคับ', active.questions.filter(q => q.required).length]].map(([label, num]) => (
+                        React.createElement('div', { key: label, className: 'stat-card' }, React.createElement('div', { className: 'stat-number', style: { color: theme.primary, fontFamily: s.displayFont } }, num), React.createElement('div', { className: 'stat-label', style: { fontFamily: s.bodyFont } }, label))
                     ))
                 ),
                 active.questions.some(q => q.type === 'radio' || q.type === 'checkbox') && React.createElement('div', { className: 'card', style: { marginBottom: 16 } },
-                    React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--gray-700)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 } },
-                        React.createElement('i', { className: 'fas fa-chart-pie', style: { color: theme.primary } }), ' สรุปภาพรวม'
-                    ),
+                    React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--gray-700)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 } }, React.createElement('i', { className: 'fas fa-chart-pie', style: { color: theme.primary } }), ' สรุปภาพรวม'),
                     React.createElement('div', { className: 'chart-grid' },
                         active.questions.filter(q => q.type === 'radio' || q.type === 'checkbox').map(q => (
-                            React.createElement('div', { key: q.id, className: 'chart-card' },
-                                React.createElement('div', { className: 'chart-card-title', style: { fontFamily: s.bodyFont } }, q.text),
-                                React.createElement('canvas', { ref: el => chartRefs.current[q.id] = el, height: '200' })
-                            )
+                            React.createElement('div', { key: q.id, className: 'chart-card' }, React.createElement('div', { className: 'chart-card-title', style: { fontFamily: s.bodyFont } }, q.text), React.createElement('canvas', { ref: el => chartRefs.current[q.id] = el, height: '200' }))
                         ))
                     )
                 ),
                 React.createElement('div', { className: 'card' },
                     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontFamily: s.displayFont, fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--gray-700)' } },
                         React.createElement('i', { className: 'fas fa-table', style: { color: theme.primary } }), ' รายละเอียดคำตอบทั้งหมด',
-                        React.createElement('span', { className: 'badge', style: { background: theme.light + '80', color: theme.secondary } }, responseCount, ' รายการ')
+                        React.createElement('span', { className: 'badge', style: { background: theme.light + '80', color: theme.secondary } }, active.responses.length, ' รายการ')
                     ),
-                    responseCount === 0 ? React.createElement('div', { className: 'empty-state', style: { padding: 36 } },
-                        React.createElement('div', { className: 'empty-icon', style: { fontSize: 28 } }, '📭'),
-                        React.createElement('div', { className: 'empty-title', style: { fontFamily: s.displayFont } }, 'ยังไม่มีคำตอบ')
-                    ) : React.createElement('div', { className: 'table-wrap' },
-                        React.createElement('table', { className: 'resp-table' },
-                            React.createElement('thead', null,
-                                React.createElement('tr', null,
-                                    React.createElement('th', { style: { fontFamily: s.bodyFont } }, '#'),
-                                    React.createElement('th', { style: { fontFamily: s.bodyFont } }, 'เวลาส่ง'),
-                                    active.questions.map(q => React.createElement('th', { key: q.id, style: { fontFamily: s.bodyFont } }, q.text.length > 18 ? q.text.slice(0, 18) + '…' : q.text))
+                    active.responses.length === 0 ? React.createElement('div', { className: 'empty-state', style: { padding: 36 } }, React.createElement('div', { className: 'empty-icon', style: { fontSize: 28 } }, '📭'), React.createElement('div', { className: 'empty-title', style: { fontFamily: s.displayFont } }, 'ยังไม่มีคำตอบ'))
+                        : React.createElement('div', { className: 'table-wrap' },
+                            React.createElement('table', { className: 'resp-table' },
+                                React.createElement('thead', null,
+                                    React.createElement('tr', null,
+                                        React.createElement('th', { style: { fontFamily: s.bodyFont } }, '#'),
+                                        React.createElement('th', { style: { fontFamily: s.bodyFont } }, 'เวลาส่ง'),
+                                        active.questions.map(q => React.createElement('th', { key: q.id, style: { fontFamily: s.bodyFont } }, q.text.length > 18 ? q.text.slice(0, 18) + '…' : q.text))
+                                    )
+                                ),
+                                React.createElement('tbody', null,
+                                    active.responses.map((r, i) => React.createElement('tr', { key: r.id },
+                                        React.createElement('td', { style: { fontFamily: s.bodyFont } }, i + 1),
+                                        React.createElement('td', { style: { fontFamily: s.bodyFont } }, r.submittedAt),
+                                        active.questions.map(q => { const a = r.answers[q.id]; return React.createElement('td', { key: q.id, title: Array.isArray(a) ? a.join(', ') : (a || '-'), style: { fontFamily: s.bodyFont } }, Array.isArray(a) ? a.join(', ') : (a || React.createElement('span', { style: { color: 'var(--gray-300)' } }, '—'))); })
+                                    ))
                                 )
-                            ),
-                            React.createElement('tbody', null,
-                                (active.responses || []).map((r, i) => React.createElement('tr', { key: r.id },
-                                    React.createElement('td', { style: { fontFamily: s.bodyFont } }, i + 1),
-                                    React.createElement('td', { style: { fontFamily: s.bodyFont } }, r.submittedAt),
-                                    active.questions.map(q => {
-                                        const a = r.answers[q.id];
-                                        return React.createElement('td', { key: q.id, title: Array.isArray(a) ? a.join(', ') : (a || '-'), style: { fontFamily: s.bodyFont } },
-                                            Array.isArray(a) ? a.join(', ') : (a || React.createElement('span', { style: { color: 'var(--gray-300)' } }, '—'))
-                                        );
-                                    })
-                                ))
                             )
                         )
-                    )
                 )
             );
         }
@@ -3074,73 +2838,66 @@
             const [admin, setAdmin] = useState(false);
             const [formId, setFormId] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [forms, setForms] = useState([]);
             const [, forceUpdate] = useState({});
 
-            // โหลดข้อมูลทั้งหมดจาก Google Sheets
-            const loadAllData = async () => {
-                try {
-                    // โหลดการตั้งค่า
-                    await SiteSettingsDB.load();
-
-                    // โหลดฟอร์มทั้งหมด
-                    const loadedForms = await GoogleSheetsAPI.getForms();
-                    DB.forms = loadedForms;
-                    setForms(loadedForms);
-
-                    // ตรวจสอบ URL Hash สำหรับฟอร์มที่แชร์มา
-                    const hash = window.location.hash.substring(1);
-                    if (hash && hash.startsWith('form=')) {
-                        try {
-                            const encodedForm = hash.substring(5);
-                            const sharedForm = Compressor.decodeForm(encodedForm);
-
-                            if (sharedForm) {
-                                // ตรวจสอบว่าฟอร์มนี้มีอยู่ใน DB หรือยัง
-                                const existingIndex = DB.forms.findIndex(f => f.id === sharedForm.id);
-                                if (existingIndex === -1) {
-                                    DB.forms.push(sharedForm);
-                                    await GoogleSheetsAPI.saveForm(sharedForm);
-                                    setForms([...DB.forms]);
-                                }
-                                setFormId(sharedForm.id);
-                                setMode('fillform');
-                            }
-                        } catch (e) {
-                            console.error('Failed to decode form from hash', e);
-                        }
-                    }
-
-                    forceUpdate({});
-                } catch (error) {
-                    console.error('Failed to load data:', error);
-                    toast.show('ไม่สามารถโหลดข้อมูลจาก Google Sheets ได้ กำลังใช้ข้อมูลสำรอง', 'error');
-                } finally {
-                    setLoading(false);
-                }
-            };
-
             useEffect(() => {
-                loadAllData();
+                const loadData = async () => {
+                    try {
+                        // โหลดข้อมูลทั้งหมดจาก Google Sheets เท่านั้น (ไม่ใช้ localStorage แล้ว)
+                        const [forms] = await Promise.all([
+                            GoogleSheetsService.getForms(),
+                            SiteSettingsDB.load()
+                        ]);
+                        DB.forms = forms;
+
+                        // ตรวจสอบ URL Hash สำหรับฟอร์มที่แชร์มา (แบบบีบอัด)
+                        const hash = window.location.hash.substring(1);
+                        if (hash && hash.startsWith('form=')) {
+                            try {
+                                const encodedForm = hash.substring(5);
+                                const sharedForm = Compressor.decodeForm(encodedForm);
+
+                                if (sharedForm) {
+                                    const existingIndex = DB.forms.findIndex(f => f.id === sharedForm.id);
+                                    if (existingIndex === -1) {
+                                        DB.forms.push(sharedForm);
+                                        // บันทึกฟอร์มที่แชร์มาเข้า Google Sheets เพื่อให้ทุกเบราว์เซอร์เห็น
+                                        await GoogleSheetsService.saveForm(sharedForm);
+                                    }
+                                    setFormId(sharedForm.id);
+                                    setMode('fillform');
+                                }
+                            } catch (e) {
+                                console.error('Failed to decode form from hash', e);
+                            }
+                        }
+
+                        // ตรวจสอบ Query Parameter (แบบเดิม)
+                        const params = new URLSearchParams(window.location.search);
+                        const fid = params.get('form');
+                        if (fid) {
+                            setFormId(fid);
+                            setMode('fillform');
+                        }
+
+                        forceUpdate({});
+                    } catch (error) {
+                        console.error('Failed to load data from Google Sheets:', error);
+                        SwalHelper.error('ไม่สามารถเชื่อมต่อ Google Sheets ได้\n' + (error.message || ''));
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                loadData();
             }, []);
 
-            const refreshForms = async () => {
-                const loadedForms = await GoogleSheetsAPI.getForms();
-                DB.forms = loadedForms;
-                setForms(loadedForms);
-                forceUpdate({});
-            };
-
-            const refreshSettings = async () => {
-                await SiteSettingsDB.load();
-                forceUpdate({});
-            };
 
             if (loading) {
                 return React.createElement('div', { className: 'login-wrap' },
                     React.createElement('div', { className: 'login-card' },
                         React.createElement('div', { className: 'spinner', style: { margin: '0 auto', width: 40, height: 40, borderWidth: 3, borderTopColor: 'var(--pink-500)' } }),
-                        React.createElement('div', { style: { marginTop: 16, color: 'var(--gray-500)' } }, 'กำลังโหลดข้อมูลจาก Google Sheets...')
+                        React.createElement('div', { style: { marginTop: 16, color: 'var(--gray-500)' } }, 'กำลังโหลดข้อมูล...')
                     )
                 );
             }
@@ -3149,8 +2906,8 @@
                 React.createElement(ToastContainer, { toasts: toast.toasts }),
                 mode !== 'login' && React.createElement(Navbar, { mode: mode, setMode: setMode, adminLoggedIn: admin, setAdminLoggedIn: setAdmin }),
                 mode === 'home' && React.createElement(HomePage, { setMode: setMode, setCurrentFormId: setFormId }),
-                mode === 'formlist' && React.createElement(FormListPage, { setMode: setMode, setCurrentFormId: setFormId, forms: forms }),
-                mode === 'fillform' && React.createElement(FillFormPage, { formId: formId, setMode: setMode, toast: toast, forms: forms, onFormsUpdate: refreshForms }),
+                mode === 'formlist' && React.createElement(FormListPage, { setMode: setMode, setCurrentFormId: setFormId }),
+                mode === 'fillform' && React.createElement(FillFormPage, { formId: formId, setMode: setMode, toast: toast }),
                 mode === 'login' && (admin
                     ? (() => { setMode('admin'); return null; })()
                     : React.createElement(React.Fragment, null,
@@ -3159,7 +2916,7 @@
                     )
                 ),
                 mode === 'admin' && (admin
-                    ? React.createElement(AdminPanel, { setMode: setMode, toast: toast, forms: forms, onFormsUpdate: refreshForms, onSettingsUpdate: refreshSettings })
+                    ? React.createElement(AdminPanel, { setMode: setMode, toast: toast })
                     : (() => { setMode('login'); return null; })()
                 )
             );
