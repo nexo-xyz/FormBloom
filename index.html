@@ -1,0 +1,2841 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>FormBloom — ระบบฟอร์มออนไลน์</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&family=Chakra+Petch:wght@300;400;500;600;700&family=Krub:wght@300;400;500;600;700&family=Mali:wght@300;400;500;600;700&family=Niramit:wght@300;400;500;600;700&family=Chonburi&family=Kodchasan:wght@300;400;500;600;700&family=Thasadith:wght@300;400;500;600;700&family=Itim&family=Anuphan:wght@300;400;500;600;700&family=Bai+Jamjuree:wght@300;400;500;600;700&family=K2D:wght@300;400;500;600;700&family=Pridi:wght@300;400;500;600;700&family=Sriracha&family=Taviraj:wght@300;400;500;600;700&family=Trirong:wght@300;400;500;600;700&family=Athiti:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        :root {
+            --pink-50: #fff0f6;
+            --pink-100: #ffe3ef;
+            --pink-200: #ffc9df;
+            --pink-300: #ffa3c7;
+            --pink-400: #ff79ad;
+            --pink-500: #f54d8f;
+            --pink-600: #e0317a;
+            --pink-700: #c01f64;
+            --white: #ffffff;
+            --gray-50: #fafafa;
+            --gray-100: #f4f4f5;
+            --gray-200: #e4e4e7;
+            --gray-300: #d1d1d6;
+            --gray-400: #a0a0ab;
+            --gray-500: #71717a;
+            --gray-600: #52525b;
+            --gray-700: #3f3f46;
+            --gray-800: #27272a;
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-pink: 0 4px 24px rgba(245, 77, 143, 0.25);
+            --radius-xs: 6px;
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --radius-2xl: 36px;
+            --font-th: 'Noto Sans Thai', 'Sarabun', sans-serif;
+            --font-display: 'Mitr', 'Noto Sans Thai', sans-serif;
+            --text-xs: clamp(0.68rem, 0.64rem + 0.2vw, 0.75rem);
+            --text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.875rem);
+            --text-base: clamp(0.9rem, 0.82rem + 0.4vw, 1rem);
+            --text-lg: clamp(1rem, 0.9rem + 0.5vw, 1.2rem);
+            --text-xl: clamp(1.2rem, 1.05rem + 0.75vw, 1.6rem);
+            --text-2xl: clamp(1.5rem, 1.25rem + 1.25vw, 2.2rem);
+            --text-3xl: clamp(2rem, 1.6rem + 2vw, 3rem);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-th);
+            background: #fdf8fc;
+            min-height: 100vh;
+            color: var(--gray-700);
+            font-size: var(--text-base);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 10% -10%, rgba(245, 77, 143, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 90% 100%, rgba(245, 77, 143, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #root {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(24px) saturate(180%);
+            border-bottom: 1px solid rgba(245, 77, 143, 0.08);
+            padding: 0 clamp(16px, 4vw, 40px);
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            text-decoration: none;
+            cursor: pointer;
+            letter-spacing: -0.01em;
+        }
+
+        .logo-pill {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            box-shadow: var(--shadow-pink);
+            flex-shrink: 0;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-th);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            transition: all 0.15s;
+            background: transparent;
+            color: var(--gray-500);
+            white-space: nowrap;
+            min-height: 38px;
+        }
+
+        .nav-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .nav-btn.active {
+            background: var(--pink-50);
+            color: var(--pink-600);
+            font-weight: 600;
+        }
+
+        .nav-btn-primary {
+            background: var(--pink-500);
+            color: white;
+            box-shadow: var(--shadow-pink);
+        }
+
+        .nav-btn-primary:hover {
+            background: var(--pink-600);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .page-container {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: clamp(20px, 5vw, 40px) clamp(16px, 4vw, 32px);
+            width: 100%;
+            flex: 1;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
+            padding: clamp(18px, 4vw, 28px);
+        }
+
+        .card-glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: var(--shadow-md);
+            padding: clamp(18px, 4vw, 28px);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-th);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            transition: all 0.15s;
+            text-decoration: none;
+            white-space: nowrap;
+            min-height: 40px;
+            letter-spacing: 0.01em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--pink-500), var(--pink-600));
+            color: white;
+            box-shadow: 0 2px 10px rgba(245, 77, 143, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 18px rgba(245, 77, 143, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--pink-600);
+            border: 1.5px solid var(--pink-200);
+        }
+
+        .btn-outline:hover {
+            background: var(--pink-50);
+            border-color: var(--pink-400);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-50);
+        }
+
+        .btn-danger {
+            background: #fff5f5;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .btn-danger:hover {
+            background: #fff1f1;
+        }
+
+        .btn-sm {
+            padding: 6px 13px;
+            font-size: var(--text-xs);
+            min-height: 32px;
+        }
+
+        .btn-lg {
+            padding: 12px 24px;
+            font-size: var(--text-base);
+            min-height: 48px;
+            border-radius: var(--radius-md);
+        }
+
+        .btn-icon {
+            padding: 8px;
+            min-height: 36px;
+            min-width: 36px;
+            border-radius: var(--radius-xs);
+        }
+
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: var(--gray-500);
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-th);
+            font-size: var(--text-base);
+            color: var(--gray-700);
+            background: white;
+            transition: all 0.15s;
+            outline: none;
+            min-height: 44px;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            border-color: var(--pink-400);
+            box-shadow: 0 0 0 3px rgba(245, 77, 143, 0.08);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a0a0ab' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 13px center;
+            padding-right: 38px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-pink {
+            background: var(--pink-100);
+            color: var(--pink-700);
+        }
+
+        .badge-green {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge-gray {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .badge-amber {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .toggle {
+            position: relative;
+            width: 38px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--gray-200);
+            border-radius: 22px;
+            transition: 0.2s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            left: 3px;
+            top: 3px;
+            transition: 0.2s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle input:checked+.toggle-slider {
+            background: var(--pink-500);
+        }
+
+        .toggle input:checked+.toggle-slider::before {
+            transform: translateX(16px);
+        }
+
+        .color-picker-input {
+            width: 52px;
+            height: 40px;
+            padding: 3px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            background: white;
+        }
+
+        .color-picker-input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-picker-input::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+
+        .home-hero {
+            text-align: center;
+            padding: clamp(50px, 10vw, 90px) 20px clamp(40px, 8vw, 70px);
+            position: relative;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--pink-50);
+            color: var(--pink-600);
+            border: 1px solid var(--pink-200);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: var(--text-xs);
+            font-weight: 600;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        .hero-logo {
+            width: clamp(56px, 12vw, 72px);
+            height: clamp(56px, 12vw, 72px);
+            background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(26px, 6vw, 32px);
+            color: white;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(245, 77, 143, 0.35);
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            font-weight: 600;
+            color: var(--gray-800);
+            line-height: 1.15;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-desc {
+            font-size: var(--text-base);
+            color: var(--gray-400);
+            max-width: 440px;
+            margin: 0 auto 36px;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+            gap: 14px;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            padding: 22px 20px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 20px;
+        }
+
+        .forms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+            gap: 18px;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-100);
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .form-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--pink-200);
+        }
+
+        .form-card-accent {
+            height: 4px;
+            background: linear-gradient(90deg, var(--pink-400), var(--pink-600));
+        }
+
+        .form-card-thumb {
+            width: 100%;
+            height: 130px;
+            overflow: hidden;
+            background: var(--gray-50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-300);
+            font-size: 44px;
+        }
+
+        .form-card-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .form-card-body {
+            padding: 16px;
+        }
+
+        .form-card-title {
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .form-card-desc {
+            font-size: var(--text-sm);
+            color: var(--gray-400);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .form-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--gray-400);
+            flex-wrap: wrap;
+        }
+
+        .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .form-card-footer {
+            padding: 10px 16px;
+            border-top: 1px solid var(--gray-50);
+            display: flex;
+            gap: 8px;
+        }
+
+        .url-box {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--pink-50);
+            border: 1px solid var(--pink-100);
+            border-radius: var(--radius-xs);
+            padding: 6px 10px;
+            font-size: 11px;
+            color: var(--pink-700);
+            font-family: monospace;
+            word-break: break-all;
+            cursor: pointer;
+            margin: 0 16px 10px;
+            transition: background 0.15s;
+        }
+
+        .url-box:hover {
+            background: var(--pink-100);
+        }
+
+        .admin-layout {
+            display: flex;
+            gap: 20px;
+            min-height: calc(100vh - 140px);
+            align-items: flex-start;
+        }
+
+        .admin-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 84px;
+        }
+
+        .sidebar-inner {
+            background: white;
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            padding: 10px;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .sidebar-section-label {
+            padding: 8px 10px 4px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gray-400);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--gray-500);
+            transition: all 0.15s;
+            margin-bottom: 1px;
+            min-height: 42px;
+        }
+
+        .sidebar-item:hover {
+            background: var(--gray-50);
+            color: var(--gray-700);
+        }
+
+        .sidebar-item.active {
+            background: var(--pink-50);
+            color: var(--pink-600);
+            font-weight: 600;
+        }
+
+        .sidebar-item i {
+            width: 16px;
+            text-align: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: var(--gray-100);
+            margin: 8px 0;
+        }
+
+        .sidebar-stat {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .admin-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .page-title {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            font-weight: 600;
+            color: var(--gray-800);
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+        }
+
+        .page-subtitle {
+            color: var(--gray-400);
+            font-size: var(--text-sm);
+            margin-top: 3px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 1.5px solid var(--pink-100);
+        }
+
+        .section-title i {
+            color: var(--pink-500);
+            font-size: 14px;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: var(--radius-md);
+            border: 1.5px solid var(--gray-100);
+            padding: 18px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .question-card:hover {
+            border-color: var(--pink-200);
+            box-shadow: var(--shadow-xs);
+        }
+
+        .question-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .q-number {
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+            color: white;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .q-actions {
+            display: flex;
+            gap: 3px;
+            margin-left: auto;
+        }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .option-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--pink-300);
+            flex-shrink: 0;
+        }
+
+        .option-dot.sq {
+            border-radius: 4px;
+        }
+
+        .option-input {
+            flex: 1;
+            padding: 7px 11px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-xs);
+            font-family: var(--font-th);
+            font-size: var(--text-sm);
+            outline: none;
+            transition: border-color 0.15s;
+            min-height: 36px;
+        }
+
+        .option-input:focus {
+            border-color: var(--pink-400);
+        }
+
+        .add-option-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--pink-500);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            cursor: pointer;
+            padding: 6px 4px;
+            background: none;
+            border: none;
+            font-family: var(--font-th);
+            transition: color 0.15s;
+            min-height: 36px;
+        }
+
+        .add-option-btn:hover {
+            color: var(--pink-700);
+        }
+
+        .required-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--gray-100);
+            font-size: var(--text-xs);
+            color: var(--gray-400);
+        }
+
+        .user-form-wrap {
+            max-width: 740px;
+            margin: 0 auto;
+            padding: clamp(16px, 4vw, 30px) clamp(12px, 3vw, 16px);
+        }
+
+        .form-cover {
+            width: 100%;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            overflow: hidden;
+        }
+
+        .form-cover img {
+            width: 100%;
+            height: auto;
+            max-height: 280px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .form-hero {
+            background: linear-gradient(135deg, var(--pink-500), var(--pink-700));
+            padding: clamp(22px, 5vw, 36px);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-hero:first-child {
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+
+        .form-hero::after {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 50%;
+        }
+
+        .form-hero-title {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            font-weight: 600;
+            margin-bottom: 7px;
+            position: relative;
+            line-height: 1.25;
+        }
+
+        .form-hero-desc {
+            font-size: var(--text-sm);
+            opacity: 0.88;
+            position: relative;
+        }
+
+        .form-body {
+            background: white;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            border: 1px solid var(--gray-100);
+            border-top: none;
+            padding: clamp(20px, 5vw, 32px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .user-q-card {
+            border-radius: var(--radius-md);
+            padding: clamp(14px, 3.5vw, 18px);
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .user-q-title {
+            font-size: var(--text-base);
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            line-height: 1.4;
+        }
+
+        .req-star {
+            color: var(--pink-500);
+            flex-shrink: 0;
+        }
+
+        .radio-opt,
+        .check-opt {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 11px 13px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.12s;
+            margin-bottom: 5px;
+            min-height: 46px;
+        }
+
+        .radio-opt:hover,
+        .check-opt:hover {
+            background: var(--pink-50);
+        }
+
+        .radio-opt input,
+        .check-opt input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--pink-500);
+            flex-shrink: 0;
+        }
+
+        .radio-opt.sel,
+        .check-opt.sel {
+            background: var(--pink-50);
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+        }
+
+        .pg-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-600);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+
+        .pg-btn:hover:not(:disabled) {
+            background: var(--pink-50);
+            border-color: var(--pink-300);
+            color: var(--pink-600);
+        }
+
+        .pg-btn.active {
+            background: var(--pink-500);
+            border-color: var(--pink-500);
+            color: white;
+            box-shadow: 0 2px 8px rgba(245, 77, 143, 0.3);
+        }
+
+        .pg-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-100);
+            padding: 18px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--pink-600);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: var(--text-xs);
+            color: var(--gray-400);
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-100);
+            padding: 18px;
+        }
+
+        .chart-card-title {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 14px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-100);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .resp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--text-xs);
+        }
+
+        .resp-table th {
+            background: var(--pink-50);
+            color: var(--pink-700);
+            font-weight: 600;
+            padding: 11px 13px;
+            text-align: left;
+            border-bottom: 1.5px solid var(--pink-100);
+            white-space: nowrap;
+        }
+
+        .resp-table td {
+            padding: 10px 13px;
+            border-bottom: 1px solid var(--gray-50);
+            color: var(--gray-600);
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .resp-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .resp-table tr:hover td {
+            background: var(--pink-50);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            padding: 28px;
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalIn 0.22s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.96) translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .login-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: var(--radius-2xl);
+            border: 1px solid var(--gray-100);
+            box-shadow: var(--shadow-lg);
+            padding: clamp(28px, 7vw, 44px) clamp(22px, 6vw, 40px);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: white;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(245, 77, 143, 0.3);
+        }
+
+        .success-screen {
+            text-align: center;
+            padding: clamp(28px, 7vw, 48px) 20px;
+        }
+
+        .success-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--pink-400), var(--pink-600));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: white;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(245, 77, 143, 0.3);
+            animation: pop 0.45s ease;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0);
+            }
+
+            65% {
+                transform: scale(1.12);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 76px;
+            right: clamp(12px, 3vw, 20px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            max-width: calc(100vw - 24px);
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 11px 16px;
+            border-radius: var(--radius-md);
+            background: white;
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-lg);
+            font-size: var(--text-sm);
+            color: var(--gray-700);
+            animation: toastIn 0.25s ease;
+            min-width: min(260px, 90vw);
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast.success {
+            border-color: #bbf7d0;
+        }
+
+        .toast.success i {
+            color: #16a34a;
+        }
+
+        .toast.error {
+            border-color: #fecaca;
+        }
+
+        .toast.error i {
+            color: #dc2626;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--gray-400);
+        }
+
+        .empty-icon {
+            font-size: clamp(32px, 8vw, 48px);
+            margin-bottom: 14px;
+            opacity: 0.35;
+        }
+
+        .empty-title {
+            font-family: var(--font-display);
+            font-size: var(--text-lg);
+            margin-bottom: 6px;
+            color: var(--gray-600);
+        }
+
+        .empty-text {
+            font-size: var(--text-sm);
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.65s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .theme-swatches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .theme-swatch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .swatch-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            transition: all 0.15s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-swatch.active .swatch-circle {
+            border-color: white;
+            box-shadow: 0 0 0 2px var(--pink-500), 0 4px 10px rgba(0, 0, 0, 0.12);
+            transform: scale(1.08);
+        }
+
+        .swatch-label {
+            font-size: 10px;
+            color: var(--gray-500);
+        }
+
+        .custom-color-box {
+            margin-top: 14px;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            border: 1.5px dashed var(--gray-200);
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .color-row-label {
+            width: 70px;
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .color-val {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .font-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 2px;
+        }
+
+        .font-opt {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--gray-200);
+            cursor: pointer;
+            transition: all 0.12s;
+            background: white;
+        }
+
+        .font-opt:hover {
+            border-color: var(--pink-300);
+            background: var(--pink-50);
+        }
+
+        .font-opt.active {
+            border-color: var(--pink-500);
+            background: var(--pink-50);
+            border-width: 2px;
+        }
+
+        .font-opt-name {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+
+        .font-opt-sample {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .font-preview-box {
+            margin-top: 14px;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+        }
+
+        .img-preview {
+            margin-top: 10px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+        }
+
+        .img-preview img {
+            width: 100%;
+            height: auto;
+            max-height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .img-hint {
+            display: flex;
+            gap: 14px;
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--gray-400);
+            flex-wrap: wrap;
+        }
+
+        .logo-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px;
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            margin-top: 10px;
+        }
+
+        .logo-preview-box {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            flex-shrink: 0;
+        }
+
+        .tab-row {
+            display: flex;
+            gap: 3px;
+            border-bottom: 1.5px solid var(--gray-100);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: none;
+            background: transparent;
+            font-family: var(--font-th);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1.5px;
+            transition: all 0.15s;
+        }
+
+        .tab-btn.active {
+            color: var(--pink-600);
+            border-bottom-color: var(--pink-500);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: var(--gray-700);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--gray-100);
+            margin: 18px 0;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .text-sm {
+            font-size: var(--text-sm);
+        }
+
+        .text-xs {
+            font-size: var(--text-xs);
+        }
+
+        .text-muted {
+            color: var(--gray-400);
+        }
+
+        .gap-2 {
+            gap: 8px;
+        }
+
+        .mt-3 {
+            margin-top: 12px;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .info-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--pink-50);
+            border: 1px solid var(--pink-100);
+            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            font-size: var(--text-xs);
+            color: var(--pink-700);
+            margin-bottom: 16px;
+        }
+
+        .info-box i {
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+
+        .q-page-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            font-size: var(--text-sm);
+            gap: 12px;
+        }
+
+        .setting-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--pink-50);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--pink-100);
+        }
+
+        @media (max-width: 1024px) {
+            .admin-layout {
+                flex-direction: column;
+            }
+
+            .admin-sidebar {
+                width: 100%;
+                position: static;
+            }
+
+            .sidebar-inner {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+                padding: 8px;
+            }
+
+            .sidebar-item {
+                flex: 1 0 auto;
+                justify-content: center;
+                min-width: 110px;
+            }
+
+            .sidebar-section-label,
+            .sidebar-divider,
+            .sidebar-stat {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                height: auto;
+                min-height: 60px;
+                padding: 10px 16px;
+                gap: 8px;
+            }
+
+            .navbar-brand {
+                justify-content: center;
+            }
+
+            .nav-right {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .page-header {
+                flex-direction: column;
+            }
+
+            .forms-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-card-footer {
+                flex-wrap: wrap;
+            }
+
+            .form-card-footer .btn {
+                flex: 1;
+                min-width: 90px;
+            }
+
+            .font-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-container {
+                padding: 16px 12px;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // ========== GOOGLE SHEETS CONFIGURATION ==========
+        const GOOGLE_SHEETS_CONFIG = {
+            // ใส่ URL ของ Google Apps Script Web App ที่นี่
+            scriptURL: 'https://script.google.com/macros/s/AKfycby84tj-fYDP3T0NzCcYalPw51y6Q8VxaFIx99boUt_AzZRW_RpHyVq2_c_vUTz2zjy28g/exec',
+            // หรือถ้ายังไม่ได้ตั้งค่า จะใช้ localStorage แทน
+            useLocalStorage: true
+        };
+
+        // Google Apps Script Service
+        const GoogleSheetsService = {
+            async call(action, data = {}) {
+                if (GOOGLE_SHEETS_CONFIG.useLocalStorage) {
+                    return this.handleLocalStorage(action, data);
+                }
+
+                try {
+                    const response = await fetch(GOOGLE_SHEETS_CONFIG.scriptURL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: JSON.stringify({ action, ...data })
+                    });
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('Google Sheets API Error:', error);
+                    return this.handleLocalStorage(action, data);
+                }
+            },
+
+            handleLocalStorage(action, data) {
+                switch (action) {
+                    case 'getForms':
+                        return { success: true, data: JSON.parse(localStorage.getItem('formbloom_forms') || '[]') };
+                    case 'saveForm':
+                        const forms = JSON.parse(localStorage.getItem('formbloom_forms') || '[]');
+                        const existingIndex = forms.findIndex(f => f.id === data.form.id);
+                        if (existingIndex >= 0) {
+                            forms[existingIndex] = data.form;
+                        } else {
+                            forms.push(data.form);
+                        }
+                        localStorage.setItem('formbloom_forms', JSON.stringify(forms));
+                        return { success: true };
+                    case 'deleteForm':
+                        const currentForms = JSON.parse(localStorage.getItem('formbloom_forms') || '[]');
+                        const filtered = currentForms.filter(f => f.id !== data.formId);
+                        localStorage.setItem('formbloom_forms', JSON.stringify(filtered));
+                        return { success: true };
+                    case 'saveResponse':
+                        return { success: true };
+                    case 'getSettings':
+                        return { success: true, data: JSON.parse(localStorage.getItem('formbloom_site_settings') || '{}') };
+                    case 'saveSettings':
+                        localStorage.setItem('formbloom_site_settings', JSON.stringify(data.settings));
+                        return { success: true };
+                    default:
+                        return { success: false, error: 'Unknown action' };
+                }
+            },
+
+            async getForms() {
+                const result = await this.call('getForms');
+                return result.data || [];
+            },
+
+            async saveForm(form) {
+                return await this.call('saveForm', { form });
+            },
+
+            async deleteForm(formId) {
+                return await this.call('deleteForm', { formId });
+            },
+
+            async saveResponse(formId, response) {
+                return await this.call('saveResponse', { formId, response });
+            },
+
+            async getSettings() {
+                const result = await this.call('getSettings');
+                return result.data || {};
+            },
+
+            async saveSettings(settings) {
+                return await this.call('saveSettings', { settings });
+            }
+        };
+
+        // เริ่มต้นข้อมูลว่าง
+        const INITIAL_FORMS = [];
+
+        const GOOGLE_FONTS = [
+            { name: 'Noto Sans Thai', family: "'Noto Sans Thai', sans-serif", category: 'sans-serif' },
+            { name: 'Mitr', family: "'Mitr', sans-serif", category: 'sans-serif' },
+            { name: 'Sarabun', family: "'Sarabun', sans-serif", category: 'sans-serif' },
+            { name: 'Kanit', family: "'Kanit', sans-serif", category: 'sans-serif' },
+            { name: 'Prompt', family: "'Prompt', sans-serif", category: 'sans-serif' },
+            { name: 'Chakra Petch', family: "'Chakra Petch', sans-serif", category: 'sans-serif' },
+            { name: 'Krub', family: "'Krub', sans-serif", category: 'sans-serif' },
+            { name: 'Mali', family: "'Mali', cursive", category: 'cursive' },
+            { name: 'Niramit', family: "'Niramit', sans-serif", category: 'sans-serif' },
+            { name: 'Chonburi', family: "'Chonburi', cursive", category: 'cursive' },
+            { name: 'Kodchasan', family: "'Kodchasan', sans-serif", category: 'sans-serif' },
+            { name: 'Thasadith', family: "'Thasadith', sans-serif", category: 'sans-serif' },
+            { name: 'Itim', family: "'Itim', cursive", category: 'cursive' },
+            { name: 'Anuphan', family: "'Anuphan', sans-serif", category: 'sans-serif' },
+            { name: 'Bai Jamjuree', family: "'Bai Jamjuree', sans-serif", category: 'sans-serif' },
+            { name: 'K2D', family: "'K2D', sans-serif", category: 'sans-serif' },
+            { name: 'Pridi', family: "'Pridi', serif", category: 'serif' },
+            { name: 'Sriracha', family: "'Sriracha', cursive", category: 'cursive' },
+            { name: 'Taviraj', family: "'Taviraj', serif", category: 'serif' },
+            { name: 'Trirong', family: "'Trirong', serif", category: 'serif' },
+            { name: 'Athiti', family: "'Athiti', sans-serif", category: 'sans-serif' }
+        ];
+
+        const SiteSettingsDB = {
+            data: {
+                siteName: 'FormBloom',
+                siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม',
+                logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB',
+                primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6',
+                bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif",
+                bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr'
+            },
+            get() {
+                const saved = localStorage.getItem('formbloom_site_settings');
+                if (saved) { try { return { ...this.data, ...JSON.parse(saved) }; } catch (e) { } }
+                return this.data;
+            },
+            save(settings) {
+                this.data = { ...this.data, ...settings };
+                localStorage.setItem('formbloom_site_settings', JSON.stringify(this.data));
+                GoogleSheetsService.saveSettings(this.data);
+                this.applyTheme(); this.applyFonts();
+            },
+            applyTheme() {
+                const r = document.documentElement; const s = this.get();
+                r.style.setProperty('--pink-500', s.primaryColor);
+                r.style.setProperty('--pink-600', s.secondaryColor);
+                r.style.setProperty('--pink-300', s.accentColor);
+                r.style.setProperty('--pink-50', s.backgroundColor);
+            },
+            applyFonts() {
+                const r = document.documentElement; const s = this.get();
+                r.style.setProperty('--font-th', s.bodyFont);
+                r.style.setProperty('--font-display', s.displayFont);
+            }
+        };
+        SiteSettingsDB.applyTheme(); SiteSettingsDB.applyFonts();
+
+        const PRESET_THEMES = {
+            pink: { name: 'ชมพู', primary: '#f54d8f', secondary: '#e0317a', light: '#ffe3ef' },
+            blue: { name: 'ฟ้า', primary: '#3b82f6', secondary: '#2563eb', light: '#dbeafe' },
+            green: { name: 'เขียว', primary: '#10b981', secondary: '#059669', light: '#d1fae5' },
+            purple: { name: 'ม่วง', primary: '#8b5cf6', secondary: '#7c3aed', light: '#ede9fe' },
+            orange: { name: 'ส้ม', primary: '#f97316', secondary: '#ea580c', light: '#ffedd5' },
+            teal: { name: 'เทาเขียว', primary: '#14b8a6', secondary: '#0d9488', light: '#ccfbf1' },
+            indigo: { name: 'น้ำเงิน', primary: '#6366f1', secondary: '#4f46e5', light: '#e0e7ff' },
+            red: { name: 'แดง', primary: '#ef4444', secondary: '#dc2626', light: '#fee2e2' }
+        };
+
+        function getFormTheme(form) {
+            if (!form) return PRESET_THEMES.pink;
+            if (form.customTheme) return {
+                name: 'กำหนดเอง', primary: form.customTheme.primary, secondary: form.customTheme.secondary,
+                light: form.customTheme.primary + '20',
+                gradient: `linear-gradient(135deg, ${form.customTheme.primary}, ${form.customTheme.secondary})`, isCustom: true
+            };
+            const p = PRESET_THEMES[form.theme] || PRESET_THEMES.pink;
+            return { ...p, gradient: `linear-gradient(135deg, ${p.primary}, ${p.secondary})`, isCustom: false };
+        }
+
+        function parseThaiDate(s) {
+            if (!s) return new Date();
+            const parts = s.split('/');
+            if (parts.length !== 3) return new Date();
+            const [d, m, y] = parts.map(Number);
+            return new Date(y - 543, m - 1, d);
+        }
+        function getLatestDate(form) { return parseThaiDate(form.updatedAt || form.createdAt); }
+
+        const SwalHelper = {
+            success: (msg) => Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: msg, confirmButtonColor: SiteSettingsDB.get().primaryColor, confirmButtonText: 'ตกลง' }),
+            error: (msg) => Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: msg, confirmButtonColor: SiteSettingsDB.get().primaryColor, confirmButtonText: 'ตกลง' }),
+            info: (msg) => Swal.fire({ icon: 'info', title: 'แจ้งเตือน', text: msg, confirmButtonColor: SiteSettingsDB.get().primaryColor, confirmButtonText: 'ตกลง' }),
+            confirmDelete: (title = 'คุณแน่ใจหรือไม่?', text = 'การกระทำนี้ไม่สามารถย้อนกลับได้') => Swal.fire({
+                icon: 'warning', title, text, showCancelButton: true,
+                confirmButtonColor: '#dc2626', cancelButtonColor: '#71717a',
+                confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก'
+            }),
+            confirmSave: (title = 'บันทึกการเปลี่ยนแปลง?', text = '') => Swal.fire({
+                icon: 'question', title, text, showCancelButton: true,
+                confirmButtonColor: SiteSettingsDB.get().primaryColor, cancelButtonColor: '#71717a',
+                confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก'
+            })
+        };
+
+        // ฐานข้อมูลหลัก
+        const DB = {
+            forms: INITIAL_FORMS,
+            adminPassword: 'admin1234'
+        };
+
+        function useToast() {
+            const [toasts, setToasts] = useState([]);
+            const show = (msg, type = 'success') => {
+                const id = Date.now();
+                setToasts(t => [...t, { id, msg, type }]);
+                setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
+            };
+            return { toasts, show };
+        }
+
+        function ToastContainer({ toasts }) {
+            return React.createElement('div', { className: 'toast-container' },
+                toasts.map(t => React.createElement('div', { key: t.id, className: `toast ${t.type}` },
+                    React.createElement('i', { className: t.type === 'success' ? 'fas fa-check-circle' : 'fas fa-times-circle' }), t.msg
+                ))
+            );
+        }
+
+        function LogoMark({ size = 'sm', settings }) {
+            const s = settings || SiteSettingsDB.get();
+            const dim = size === 'lg' ? '60px' : '34px';
+            const fs = size === 'lg' ? '26px' : '16px';
+            const br = size === 'lg' ? '18px' : '10px';
+            const style = { width: dim, height: dim, background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})`, borderRadius: br, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: fs, flexShrink: 0, boxShadow: `0 4px 14px ${s.primaryColor}50` };
+            if (s.logoType === 'image' && s.logoImage) return React.createElement('div', { style }, React.createElement('img', { src: s.logoImage, alt: 'Logo', style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }));
+            if (s.logoType === 'text') return React.createElement('div', { style: { ...style, fontFamily: s.displayFont } }, s.logoText);
+            return React.createElement('div', { style }, React.createElement('i', { className: `fas ${s.logoIcon}` }));
+        }
+
+        function Navbar({ mode, setMode, adminLoggedIn, setAdminLoggedIn }) {
+            const s = SiteSettingsDB.get();
+            return React.createElement('nav', { className: 'navbar' },
+                React.createElement('div', { className: 'navbar-brand', onClick: () => setMode('home') },
+                    React.createElement(LogoMark, { settings: s }),
+                    React.createElement('span', null, s.siteName)
+                ),
+                React.createElement('div', { className: 'nav-right' },
+                    React.createElement('button', { className: `nav-btn ${mode === 'home' ? 'active' : ''}`, onClick: () => setMode('home') }, React.createElement('i', { className: 'fas fa-home' }), ' หน้าแรก'),
+                    adminLoggedIn
+                        ? React.createElement('button', { className: `nav-btn ${mode === 'admin' ? 'active' : ''}`, onClick: () => setMode('admin') }, React.createElement('i', { className: 'fas fa-shield-alt' }), ' แอดมิน')
+                        : React.createElement('button', { className: `nav-btn ${mode === 'login' ? 'active' : ''}`, onClick: () => setMode('login') }, React.createElement('i', { className: 'fas fa-lock' }), ' แอดมิน'),
+                    adminLoggedIn && React.createElement('button', { className: 'nav-btn', onClick: () => { setAdminLoggedIn(false); setMode('home'); }, title: 'ออกจากระบบ' }, React.createElement('i', { className: 'fas fa-sign-out-alt' }))
+                )
+            );
+        }
+
+        function AdminLogin({ onLogin, toast }) {
+            const [pw, setPw] = useState('');
+            const [err, setErr] = useState('');
+            const [loading, setLoading] = useState(false);
+            const s = SiteSettingsDB.get();
+            const handle = () => {
+                setLoading(true);
+                setTimeout(() => {
+                    if (pw === DB.adminPassword) { onLogin(); toast.show('เข้าสู่ระบบแอดมินสำเร็จ 🌸'); SwalHelper.success('ยินดีต้อนรับสู่แดชบอร์ด'); }
+                    else { setErr('รหัสผ่านไม่ถูกต้อง'); SwalHelper.error('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่'); setLoading(false); }
+                }, 600);
+            };
+            return React.createElement('div', { className: 'login-wrap' },
+                React.createElement('div', { className: 'login-card' },
+                    React.createElement('div', { className: 'login-logo', style: { background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})` } },
+                        React.createElement('i', { className: `fas ${s.logoIcon}` })
+                    ),
+                    React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 'var(--text-xl)', fontWeight: 600, color: 'var(--gray-800)', marginBottom: 5 } }, 'เข้าสู่ระบบแอดมิน'),
+                    React.createElement('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--gray-400)', marginBottom: 28 } }, 'กรอกรหัสผ่านเพื่อจัดการฟอร์ม'),
+                    React.createElement('div', { className: 'form-group', style: { textAlign: 'left' } },
+                        React.createElement('label', { className: 'form-label' }, 'รหัสผ่าน'),
+                        React.createElement('input', { className: 'form-input', type: 'password', placeholder: 'ใส่รหัสผ่าน...', value: pw, onChange: e => { setPw(e.target.value); setErr(''); }, onKeyDown: e => e.key === 'Enter' && handle() }),
+                        err && React.createElement('div', { style: { color: '#dc2626', fontSize: 12, marginTop: 6 } }, React.createElement('i', { className: 'fas fa-exclamation-circle' }), ' ', err)
+                    ),
+                    React.createElement('div', { className: 'info-box', style: { marginTop: 0 } },
+                        React.createElement('i', { className: 'fas fa-info-circle' }),
+                        React.createElement('span', null, 'รหัสสำหรับทดสอบ: ', React.createElement('code', { style: { background: 'var(--pink-100)', padding: '1px 6px', borderRadius: 4, color: 'var(--pink-700)' } }, 'admin1234'))
+                    ),
+                    React.createElement('button', { className: 'btn btn-primary w-full btn-lg', onClick: handle, disabled: loading, style: { background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})` } },
+                        loading ? React.createElement(React.Fragment, null, React.createElement('div', { className: 'spinner' }), ' กำลังตรวจสอบ...') : React.createElement(React.Fragment, null, React.createElement('i', { className: 'fas fa-sign-in-alt' }), ' เข้าสู่ระบบ')
+                    )
+                )
+            );
+        }
+
+        function HomePage({ setMode }) {
+            const s = SiteSettingsDB.get();
+            const features = [
+                { icon: 'fas fa-plus-circle', title: 'สร้างฟอร์ม', desc: 'ออกแบบคำถามได้ไม่จำกัด', color: '#f54d8f', bg: '#fff0f6' },
+                { icon: 'fas fa-palette', title: 'ปรับแต่งสี', desc: 'เลือกธีมหรือกำหนดสีเอง', color: '#8b5cf6', bg: '#ede9fe' },
+                { icon: 'fas fa-image', title: 'ใส่รูปปก', desc: 'เพิ่มรูปจาก URL ได้', color: '#3b82f6', bg: '#dbeafe' },
+                { icon: 'fas fa-chart-pie', title: 'วิเคราะห์ผล', desc: 'กราฟแสดงผลอัตโนมัติ', color: '#10b981', bg: '#d1fae5' },
+            ];
+            return React.createElement('div', { className: 'page-container' },
+                React.createElement('div', { className: 'home-hero' },
+                    React.createElement('div', { className: 'hero-badge' }, React.createElement('i', { className: 'fas fa-sparkles' }), ' ระบบฟอร์มออนไลน์'),
+                    React.createElement('div', { className: 'hero-logo', style: { background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})` } },
+                        React.createElement(LogoMark, { size: 'lg', settings: s })
+                    ),
+                    React.createElement('h1', { className: 'hero-title', style: { fontFamily: s.displayFont } }, s.siteName),
+                    React.createElement('p', { className: 'hero-desc', style: { fontFamily: s.bodyFont } }, s.siteDescription),
+                    React.createElement('div', { className: 'hero-actions' },
+                        React.createElement('button', { className: 'btn btn-primary btn-lg', onClick: () => setMode('formlist'), style: { background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})` } },
+                            React.createElement('i', { className: 'fas fa-list' }), ' ดูฟอร์มทั้งหมด'
+                        ),
+                        React.createElement('button', { className: 'btn btn-ghost btn-lg', onClick: () => setMode('login') },
+                            React.createElement('i', { className: 'fas fa-shield-alt' }), ' เข้าระบบแอดมิน'
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'features-grid', style: { padding: '0 0 40px' } },
+                    features.map(f => React.createElement('div', { key: f.title, className: 'feature-card' },
+                        React.createElement('div', { className: 'feature-icon', style: { background: f.bg, color: f.color } }, React.createElement('i', { className: f.icon })),
+                        React.createElement('div', { style: { fontFamily: s.displayFont, fontWeight: 600, fontSize: 'var(--text-base)', marginBottom: 4 } }, f.title),
+                        React.createElement('div', { style: { fontSize: 'var(--text-sm)', color: 'var(--gray-400)', fontFamily: s.bodyFont } }, f.desc)
+                    ))
+                )
+            );
+        }
+
+        function Pagination({ currentPage, totalPages, onPageChange }) {
+            if (totalPages <= 1) return null;
+            const pages = [];
+            const maxV = 5;
+            let start = Math.max(1, currentPage - Math.floor(maxV / 2));
+            let end = Math.min(totalPages, start + maxV - 1);
+            if (end - start + 1 < maxV) start = Math.max(1, end - maxV + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+            return React.createElement('div', { className: 'pagination' },
+                React.createElement('button', { className: 'pg-btn', onClick: () => onPageChange(1), disabled: currentPage === 1 }, React.createElement('i', { className: 'fas fa-angle-double-left' })),
+                React.createElement('button', { className: 'pg-btn', onClick: () => onPageChange(currentPage - 1), disabled: currentPage === 1 }, React.createElement('i', { className: 'fas fa-angle-left' })),
+                pages.map(p => React.createElement('button', { key: p, className: `pg-btn ${currentPage === p ? 'active' : ''}`, onClick: () => onPageChange(p) }, p)),
+                React.createElement('button', { className: 'pg-btn', onClick: () => onPageChange(currentPage + 1), disabled: currentPage === totalPages }, React.createElement('i', { className: 'fas fa-angle-right' })),
+                React.createElement('button', { className: 'pg-btn', onClick: () => onPageChange(totalPages), disabled: currentPage === totalPages }, React.createElement('i', { className: 'fas fa-angle-double-right' }))
+            );
+        }
+
+        function FormListPage({ setMode, setCurrentFormId }) {
+            const [page, setPage] = useState(1);
+            const perPage = 10;
+            const s = SiteSettingsDB.get();
+            const sorted = [...DB.forms].sort((a, b) => getLatestDate(b) - getLatestDate(a));
+            const total = Math.ceil(sorted.length / perPage);
+            const items = sorted.slice((page - 1) * perPage, page * perPage);
+
+            if (sorted.length === 0) {
+                return React.createElement('div', { className: 'page-container' },
+                    React.createElement('div', { style: { marginBottom: 24 } },
+                        React.createElement('button', { className: 'btn btn-ghost btn-sm mb-4', onClick: () => setMode('home') }, React.createElement('i', { className: 'fas fa-arrow-left' }), ' กลับ')
+                    ),
+                    React.createElement('div', { className: 'card' },
+                        React.createElement('div', { className: 'empty-state' },
+                            React.createElement('div', { className: 'empty-icon' }, '📋'),
+                            React.createElement('div', { className: 'empty-title' }, 'ยังไม่มีฟอร์ม'),
+                            React.createElement('div', { className: 'empty-text' }, 'กรุณาเข้าสู่ระบบแอดมินเพื่อสร้างฟอร์มแรก'),
+                            React.createElement('button', { className: 'btn btn-primary mt-4', onClick: () => setMode('login') },
+                                React.createElement('i', { className: 'fas fa-lock' }), ' เข้าสู่ระบบแอดมิน'
+                            )
+                        )
+                    )
+                );
+            }
+
+            return React.createElement('div', { className: 'page-container' },
+                React.createElement('div', { style: { marginBottom: 24 } },
+                    React.createElement('button', { className: 'btn btn-ghost btn-sm mb-4', onClick: () => setMode('home') }, React.createElement('i', { className: 'fas fa-arrow-left' }), ' กลับ'),
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 } },
+                        React.createElement('div', null,
+                            React.createElement('div', { className: 'page-title', style: { fontFamily: s.displayFont } }, 'ฟอร์มทั้งหมด'),
+                            React.createElement('div', { className: 'page-subtitle' }, sorted.length, ' ฟอร์มที่พร้อมกรอก')
+                        ),
+                        React.createElement('span', { className: 'badge badge-pink' }, React.createElement('i', { className: 'fas fa-file-alt' }), ' ', sorted.length, ' ฟอร์ม')
+                    )
+                ),
+                React.createElement('div', { className: 'forms-grid' },
+                    items.map(form => {
+                        const theme = getFormTheme(form);
+                        return React.createElement('div', { key: form.id, className: 'form-card', onClick: () => { setCurrentFormId(form.id); setMode('fillform'); } },
+                            React.createElement('div', { className: 'form-card-accent', style: { background: theme.gradient } }),
+                            React.createElement('div', { className: 'form-card-thumb' },
+                                form.thumbnailImage
+                                    ? React.createElement('img', { src: form.thumbnailImage, alt: form.title, onError: e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; } })
+                                    : null,
+                                React.createElement('i', { className: 'fas fa-file-alt', style: { display: form.thumbnailImage ? 'none' : 'flex' } })
+                            ),
+                            React.createElement('div', { className: 'form-card-body' },
+                                React.createElement('div', { className: 'form-card-title', style: { fontFamily: s.displayFont } }, form.title),
+                                React.createElement('div', { className: 'form-card-desc', style: { fontFamily: s.bodyFont } }, form.description),
+                                React.createElement('div', { className: 'form-card-meta' },
+                                    React.createElement('span', null, React.createElement('i', { className: 'fas fa-question-circle' }), ' ', form.questions.length, ' คำถาม'),
+                                    React.createElement('span', { className: 'color-dot', style: { background: theme.primary } }),
+                                    React.createElement('span', null, theme.isCustom ? '🎨 กำหนดเอง' : theme.name)
+                                )
+                            ),
+                            React.createElement('div', { className: 'form-card-footer' },
+                                React.createElement('button', { className: 'btn btn-primary btn-sm w-full', style: { background: theme.gradient, boxShadow: `0 2px 10px ${theme.primary}40` }, onClick: e => { e.stopPropagation(); setCurrentFormId(form.id); setMode('fillform'); } },
+                                    React.createElement('i', { className: 'fas fa-edit' }), ' กรอกฟอร์ม'
+                                )
+                            )
+                        );
+                    })
+                ),
+                React.createElement(Pagination, { currentPage: page, totalPages: total, onPageChange: setPage })
+            );
+        }
+
+        function FillFormPage({ formId, setMode, toast }) {
+            const form = DB.forms.find(f => f.id === formId);
+            const [answers, setAnswers] = useState({});
+            const [submitted, setSubmitted] = useState(false);
+            const [errors, setErrors] = useState({});
+            const [qPage, setQPage] = useState(1);
+            const [submitting, setSubmitting] = useState(false);
+            const perPage = 10;
+            const s = SiteSettingsDB.get();
+
+            if (!form) return React.createElement('div', { className: 'page-container' }, React.createElement('div', { className: 'empty-state' }, React.createElement('div', { className: 'empty-icon' }, '🔍'), React.createElement('div', { className: 'empty-title' }, 'ไม่พบฟอร์มนี้')));
+
+            const theme = getFormTheme(form);
+            const totalQPages = Math.ceil(form.questions.length / perPage);
+            const paginated = form.questions.length > perPage ? form.questions.slice((qPage - 1) * perPage, qPage * perPage) : form.questions;
+            const setAns = (id, val) => { setAnswers(a => ({ ...a, [id]: val })); setErrors(e => ({ ...e, [id]: false })); };
+            const toggleCb = (id, opt) => { const c = answers[id] || []; setAns(id, c.includes(opt) ? c.filter(x => x !== opt) : [...c, opt]); };
+
+            const validate = () => {
+                const e = {};
+                form.questions.forEach(q => { if (q.required) { const a = answers[q.id]; if (!a || (Array.isArray(a) && a.length === 0) || a === '') e[q.id] = true; } });
+                setErrors(e); return Object.keys(e).length === 0;
+            };
+
+            const handleSubmit = async () => {
+                if (!validate()) {
+                    toast.show('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', 'error');
+                    SwalHelper.error('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+                    return;
+                }
+
+                setSubmitting(true);
+
+                const response = {
+                    id: 'r' + Date.now(),
+                    submittedAt: new Date().toLocaleString('th-TH'),
+                    answers
+                };
+
+                form.responses.push(response);
+
+                try {
+                    await GoogleSheetsService.saveResponse(form.id, response);
+                } catch (error) {
+                    console.error('Failed to save to Google Sheets:', error);
+                }
+
+                setSubmitted(true);
+                setSubmitting(false);
+                toast.show('ส่งคำตอบสำเร็จแล้ว 🎉');
+                SwalHelper.success(`ส่งคำตอบสำเร็จ! ขอบคุณที่สละเวลา`);
+            };
+
+            if (submitted) return React.createElement('div', { className: 'user-form-wrap' },
+                React.createElement('div', { className: 'card' },
+                    React.createElement('div', { className: 'success-screen' },
+                        React.createElement('div', { className: 'success-icon', style: { background: theme.gradient } }, React.createElement('i', { className: 'fas fa-check' })),
+                        React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 'var(--text-xl)', fontWeight: 600, marginBottom: 8 } }, 'ส่งคำตอบสำเร็จแล้ว!'),
+                        React.createElement('div', { style: { color: 'var(--gray-400)', fontSize: 'var(--text-sm)', marginBottom: 24 } }, 'ขอบคุณที่กรอกฟอร์ม "', form.title, '"'),
+                        React.createElement('div', { style: { display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' } },
+                            React.createElement('button', { className: 'btn btn-primary', style: { background: theme.gradient }, onClick: () => { setAnswers({}); setSubmitted(false); setQPage(1); } }, React.createElement('i', { className: 'fas fa-redo' }), ' กรอกใหม่'),
+                            React.createElement('button', { className: 'btn btn-ghost', onClick: () => setMode('formlist') }, React.createElement('i', { className: 'fas fa-list' }), ' ดูฟอร์มอื่น')
+                        )
+                    )
+                )
+            );
+
+            return React.createElement('div', { className: 'user-form-wrap' },
+                React.createElement('div', { style: { marginBottom: 14 } }, React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: () => setMode('formlist') }, React.createElement('i', { className: 'fas fa-arrow-left' }), ' กลับ')),
+                form.coverImage && React.createElement('div', { className: 'form-cover' }, React.createElement('img', { src: form.coverImage, alt: 'Cover', onError: e => e.target.style.display = 'none' })),
+                React.createElement('div', { className: 'form-hero', style: { background: theme.gradient } },
+                    React.createElement('div', { className: 'form-hero-title', style: { fontFamily: s.displayFont } }, form.title),
+                    React.createElement('div', { className: 'form-hero-desc', style: { fontFamily: s.bodyFont } }, form.description),
+                    React.createElement('div', { style: { marginTop: 12, fontSize: 12, opacity: 0.75, fontFamily: s.bodyFont } }, React.createElement('i', { className: 'fas fa-asterisk', style: { fontSize: 9 } }), ' จำเป็นต้องกรอก')
+                ),
+                React.createElement('div', { className: 'form-body' },
+                    form.questions.length > perPage && React.createElement('div', { className: 'q-page-nav' },
+                        React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: () => setQPage(p => Math.max(1, p - 1)), disabled: qPage === 1 }, React.createElement('i', { className: 'fas fa-chevron-left' }), ' ก่อนหน้า'),
+                        React.createElement('span', { style: { fontSize: 'var(--text-sm)', color: 'var(--gray-500)', fontFamily: s.bodyFont } },
+                            'หน้า ', qPage, '/', totalQPages, ' · คำถาม ', ((qPage - 1) * perPage) + 1, '–', Math.min(qPage * perPage, form.questions.length), ' จาก ', form.questions.length
+                        ),
+                        React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: () => setQPage(p => Math.min(totalQPages, p + 1)), disabled: qPage === totalQPages }, 'ถัดไป ', React.createElement('i', { className: 'fas fa-chevron-right' }))
+                    ),
+                    paginated.map(q => {
+                        const idx = form.questions.findIndex(x => x.id === q.id);
+                        return React.createElement('div', { key: q.id, className: 'user-q-card', style: errors[q.id] ? { background: '#fff5f5', border: '1.5px solid #fca5a5' } : { background: theme.light + '40', border: `1.5px solid ${theme.light}` } },
+                            React.createElement('div', { className: 'user-q-title', style: { fontFamily: s.bodyFont } },
+                                React.createElement('span', { style: { color: theme.primary, fontSize: 12, fontWeight: 700, minWidth: 20 } }, idx + 1, '.'),
+                                q.text,
+                                q.required && React.createElement('span', { className: 'req-star' }, '*')
+                            ),
+                            errors[q.id] && React.createElement('div', { style: { color: '#dc2626', fontSize: 12, marginBottom: 8 } }, React.createElement('i', { className: 'fas fa-exclamation-circle' }), ' กรุณากรอกข้อมูลนี้'),
+                            q.type === 'text' && React.createElement('input', { className: 'form-input', placeholder: 'พิมพ์คำตอบของคุณที่นี่...', value: answers[q.id] || '', onChange: e => setAns(q.id, e.target.value) }),
+                            q.type === 'textarea' && React.createElement('textarea', { className: 'form-textarea', placeholder: 'พิมพ์คำตอบของคุณที่นี่...', value: answers[q.id] || '', onChange: e => setAns(q.id, e.target.value) }),
+                            q.type === 'radio' && q.options.map(opt => React.createElement('label', { key: opt, className: `radio-opt ${answers[q.id] === opt ? 'sel' : ''}` },
+                                React.createElement('input', { type: 'radio', name: q.id, checked: answers[q.id] === opt, onChange: () => setAns(q.id, opt), style: { accentColor: theme.primary } }),
+                                React.createElement('span', { style: { fontFamily: s.bodyFont } }, opt)
+                            )),
+                            q.type === 'checkbox' && q.options.map(opt => {
+                                const checked = (answers[q.id] || []).includes(opt);
+                                return React.createElement('label', { key: opt, className: `check-opt ${checked ? 'sel' : ''}` },
+                                    React.createElement('input', { type: 'checkbox', checked: checked, onChange: () => toggleCb(q.id, opt), style: { accentColor: theme.primary } }),
+                                    React.createElement('span', { style: { fontFamily: s.bodyFont } }, opt)
+                                );
+                            })
+                        );
+                    }),
+                    form.questions.length > perPage && React.createElement('div', { style: { display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20 } },
+                        React.createElement('button', { className: 'btn btn-outline', onClick: () => setQPage(p => Math.max(1, p - 1)), disabled: qPage === 1 }, React.createElement('i', { className: 'fas fa-chevron-left' }), ' หน้าก่อน'),
+                        React.createElement('span', { style: { alignSelf: 'center', fontSize: 'var(--text-sm)', color: 'var(--gray-400)' } }, qPage, '/', totalQPages),
+                        React.createElement('button', { className: 'btn btn-outline', onClick: () => setQPage(p => Math.min(totalQPages, p + 1)), disabled: qPage === totalQPages }, 'หน้าถัดไป ', React.createElement('i', { className: 'fas fa-chevron-right' }))
+                    ),
+                    React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 8 } },
+                        React.createElement('button', { className: 'btn btn-primary btn-lg', onClick: handleSubmit, disabled: submitting, style: { flex: 1, background: theme.gradient } },
+                            submitting ? React.createElement(React.Fragment, null, React.createElement('div', { className: 'spinner' }), ' กำลังส่ง...') : React.createElement(React.Fragment, null, React.createElement('i', { className: 'fas fa-paper-plane' }), ' ส่งคำตอบ')
+                        ),
+                        React.createElement('button', { className: 'btn btn-ghost', onClick: () => { setAnswers({}); setErrors({}); setQPage(1); } }, React.createElement('i', { className: 'fas fa-times' }), ' ล้าง')
+                    )
+                )
+            );
+        }
+
+        function SiteSettings({ toast }) {
+            const [settings, setSettings] = useState(() => SiteSettingsDB.get());
+            const [tab, setTab] = useState('general');
+            const [fontSearch, setFontSearch] = useState('');
+            const [fontCat, setFontCat] = useState('all');
+            const upd = (u) => setSettings(s => ({ ...s, ...u }));
+            const updFont = (type, name) => {
+                const font = GOOGLE_FONTS.find(f => f.name === name); if (!font) return;
+                if (type === 'body') upd({ bodyFont: font.family, bodyFontName: font.name });
+                else upd({ displayFont: font.family, displayFontName: font.name });
+            };
+            const save = () => { SiteSettingsDB.save(settings); toast.show('บันทึกการตั้งค่าเรียบร้อยแล้ว 🎨'); SwalHelper.success('บันทึกการตั้งค่าเว็บไซต์เรียบร้อยแล้ว!'); };
+            const reset = async () => {
+                const r = await SwalHelper.confirmDelete('รีเซ็ตการตั้งค่า?', 'คุณแน่ใจหรือไม่ที่จะรีเซ็ตทั้งหมด?');
+                if (r.isConfirmed) {
+                    const def = { siteName: 'FormBloom', siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม', logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB', primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6', bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif", bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr' };
+                    setSettings(def); SiteSettingsDB.save(def); toast.show('รีเซ็ตการตั้งค่าแล้ว 🔄');
+                }
+            };
+            const icons = [{ value: 'fa-feather-alt', label: 'ขนนก' }, { value: 'fa-file-alt', label: 'เอกสาร' }, { value: 'fa-clipboard-list', label: 'คลิปบอร์ด' }, { value: 'fa-pen', label: 'ปากกา' }, { value: 'fa-star', label: 'ดาว' }, { value: 'fa-heart', label: 'หัวใจ' }, { value: 'fa-crown', label: 'มงกุฎ' }, { value: 'fa-gem', label: 'เพชร' }];
+            const cats = ['all', ...new Set(GOOGLE_FONTS.map(f => f.category))];
+            const filteredFonts = GOOGLE_FONTS.filter(f => f.name.toLowerCase().includes(fontSearch.toLowerCase()) && (fontCat === 'all' || f.category === fontCat));
+
+            return React.createElement('div', null,
+                React.createElement('div', { className: 'page-header' },
+                    React.createElement('div', null,
+                        React.createElement('div', { className: 'page-title' }, 'ตั้งค่าเว็บไซต์'),
+                        React.createElement('div', { className: 'page-subtitle' }, 'ปรับแต่งชื่อ โลโก้ สี และฟอนต์ของระบบ')
+                    ),
+                    React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                        React.createElement('button', { className: 'btn btn-ghost', onClick: reset }, React.createElement('i', { className: 'fas fa-undo' }), ' รีเซ็ต'),
+                        React.createElement('button', { className: 'btn btn-primary', onClick: save, style: { background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` } }, React.createElement('i', { className: 'fas fa-save' }), ' บันทึก')
+                    )
+                ),
+                React.createElement('div', { className: 'tab-row' },
+                    React.createElement('button', { className: `tab-btn ${tab === 'general' ? 'active' : ''}`, onClick: () => setTab('general') }, React.createElement('i', { className: 'fas fa-globe' }), ' ทั่วไป'),
+                    React.createElement('button', { className: `tab-btn ${tab === 'fonts' ? 'active' : ''}`, onClick: () => setTab('fonts') }, React.createElement('i', { className: 'fas fa-font' }), ' ฟอนต์')
+                ),
+                tab === 'general' && React.createElement('div', { className: 'card' },
+                    React.createElement('div', { className: 'section-title' }, React.createElement('i', { className: 'fas fa-globe' }), ' ข้อมูลเว็บไซต์'),
+                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'ชื่อเว็บไซต์'), React.createElement('input', { className: 'form-input', placeholder: 'FormBloom', value: settings.siteName, onChange: e => upd({ siteName: e.target.value }) })),
+                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'คำอธิบาย'), React.createElement('textarea', { className: 'form-textarea', placeholder: 'คำอธิบายสั้นๆ', value: settings.siteDescription, onChange: e => upd({ siteDescription: e.target.value }), style: { minHeight: 70 } })),
+                    React.createElement('div', { className: 'divider' }),
+                    React.createElement('div', { className: 'section-title' }, React.createElement('i', { className: 'fas fa-image' }), ' โลโก้'),
+                    React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, 'ประเภทโลโก้'),
+                        React.createElement('select', { className: 'form-select', value: settings.logoType, onChange: e => upd({ logoType: e.target.value }) },
+                            React.createElement('option', { value: 'icon' }, 'ไอคอน (Font Awesome)'),
+                            React.createElement('option', { value: 'image' }, 'รูปภาพ (URL)'),
+                            React.createElement('option', { value: 'text' }, 'ตัวอักษร')
+                        )
+                    ),
+                    settings.logoType === 'icon' && React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'เลือกไอคอน'), React.createElement('select', { className: 'form-select', value: settings.logoIcon, onChange: e => upd({ logoIcon: e.target.value }) }, icons.map(i => React.createElement('option', { key: i.value, value: i.value }, i.label)))),
+                    settings.logoType === 'image' && React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, 'URL รูปภาพโลโก้'),
+                        React.createElement('input', { className: 'form-input', type: 'url', placeholder: 'https://example.com/logo.png', value: settings.logoImage, onChange: e => upd({ logoImage: e.target.value }) }),
+                        settings.logoImage && React.createElement('div', { className: 'img-preview' }, React.createElement('img', { src: settings.logoImage, alt: 'Logo', onError: e => e.target.style.display = 'none' }))
+                    ),
+                    settings.logoType === 'text' && React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'ตัวอักษร (สูงสุด 3)'), React.createElement('input', { className: 'form-input', maxLength: '3', placeholder: 'FB', value: settings.logoText, onChange: e => upd({ logoText: e.target.value.slice(0, 3) }) })),
+                    React.createElement('div', { className: 'logo-preview-row' },
+                        React.createElement('div', { className: 'logo-preview-box', style: { background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` } },
+                            settings.logoType === 'icon' && React.createElement('i', { className: `fas ${settings.logoIcon}`, style: { color: 'white' } }),
+                            settings.logoType === 'image' && settings.logoImage && React.createElement('img', { src: settings.logoImage, alt: 'Logo', style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 } }),
+                            settings.logoType === 'image' && !settings.logoImage && React.createElement('i', { className: 'fas fa-image', style: { color: 'white' } }),
+                            settings.logoType === 'text' && React.createElement('span', { style: { color: 'white', fontFamily: settings.displayFont, fontWeight: 600 } }, settings.logoText || 'FB')
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('div', { style: { fontFamily: settings.displayFont, fontWeight: 600, fontSize: 18, color: 'var(--gray-700)' } }, settings.siteName || 'FormBloom'),
+                            React.createElement('div', { style: { fontSize: 12, color: 'var(--gray-400)', fontFamily: settings.bodyFont } }, settings.siteDescription?.slice(0, 50) || 'ระบบฟอร์มออนไลน์')
+                        )
+                    ),
+                    React.createElement('div', { className: 'divider' }),
+                    React.createElement('div', { className: 'section-title' }, React.createElement('i', { className: 'fas fa-palette' }), ' สีหลักของระบบ'),
+                    [['primaryColor', 'สีหลัก (Primary)'], ['secondaryColor', 'สีรอง (Secondary)'], ['accentColor', 'สีเน้น (Accent)'], ['backgroundColor', 'สีพื้นหลังอ่อน']].map(([key, label]) => (
+                        React.createElement('div', { key: key, className: 'form-group' },
+                            React.createElement('label', { className: 'form-label' }, label),
+                            React.createElement('div', { className: 'color-row' },
+                                React.createElement('input', { type: 'color', className: 'color-picker-input', value: settings[key], onChange: e => upd({ [key]: e.target.value }) }),
+                                React.createElement('span', { className: 'color-val' }, settings[key].toUpperCase()),
+                                React.createElement('div', { style: { width: 32, height: 32, borderRadius: 8, background: settings[key], border: '1px solid var(--gray-200)', marginLeft: 4 } })
+                            )
+                        )
+                    )),
+                    React.createElement('div', { style: { padding: 16, background: 'var(--gray-50)', borderRadius: 'var(--radius-md)' } },
+                        React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 12 } }, 'ตัวอย่างปุ่ม'),
+                        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
+                            React.createElement('button', { className: 'btn btn-primary', style: { background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` } }, React.createElement('i', { className: 'fas fa-check' }), ' ปุ่มหลัก'),
+                            React.createElement('button', { className: 'btn btn-outline', style: { color: settings.primaryColor, borderColor: settings.accentColor } }, 'ปุ่มรอง'),
+                            React.createElement('button', { className: 'btn btn-ghost' }, 'ปุ่มทั่วไป')
+                        )
+                    )
+                ),
+                tab === 'fonts' && React.createElement('div', { className: 'card' },
+                    React.createElement('div', { className: 'section-title' }, React.createElement('i', { className: 'fas fa-font' }), ' ตั้งค่าฟอนต์'),
+                    React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, 'ฟอนต์หัวข้อ (Display Font)'),
+                        React.createElement('select', { className: 'form-select', value: settings.displayFontName, onChange: e => updFont('display', e.target.value) },
+                            GOOGLE_FONTS.map(f => React.createElement('option', { key: f.name, value: f.name }, `${f.name} (${f.category})`))
+                        )
+                    ),
+                    React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, 'ฟอนต์เนื้อหา (Body Font)'),
+                        React.createElement('select', { className: 'form-select', value: settings.bodyFontName, onChange: e => updFont('body', e.target.value) },
+                            GOOGLE_FONTS.map(f => React.createElement('option', { key: f.name, value: f.name }, `${f.name} (${f.category})`))
+                        )
+                    ),
+                    React.createElement('div', { className: 'divider' }),
+                    React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--gray-600)', marginBottom: 12 } }, React.createElement('i', { className: 'fas fa-search' }), ' เรียกดูฟอนต์ทั้งหมด'),
+                    React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' } },
+                        React.createElement('input', { type: 'text', className: 'form-input', placeholder: 'ค้นหาชื่อฟอนต์...', value: fontSearch, onChange: e => setFontSearch(e.target.value), style: { flex: 1, minWidth: 180 } }),
+                        React.createElement('select', { className: 'form-select', value: fontCat, onChange: e => setFontCat(e.target.value), style: { width: 'auto' } },
+                            cats.map(c => React.createElement('option', { key: c, value: c }, c === 'all' ? 'ทุกประเภท' : c))
+                        )
+                    ),
+                    React.createElement('div', { className: 'font-grid' },
+                        filteredFonts.map(font => React.createElement('div', { key: font.name, className: `font-opt ${settings.bodyFontName === font.name || settings.displayFontName === font.name ? 'active' : ''}` },
+                            React.createElement('div', { className: 'font-opt-name', style: { fontFamily: font.family } }, font.name),
+                            React.createElement('div', { className: 'font-opt-sample', style: { fontFamily: font.family } }, 'ตัวอย่างภาษาไทย'),
+                            React.createElement('div', { style: { fontSize: 10, color: 'var(--gray-400)', marginBottom: 7 } }, font.category),
+                            React.createElement('div', { style: { display: 'flex', gap: 5 } },
+                                React.createElement('button', { className: 'btn btn-ghost btn-sm', style: { flex: 1, fontSize: 10 }, onClick: () => updFont('display', font.name) }, 'หัวข้อ'),
+                                React.createElement('button', { className: 'btn btn-ghost btn-sm', style: { flex: 1, fontSize: 10 }, onClick: () => updFont('body', font.name) }, 'เนื้อหา')
+                            )
+                        ))
+                    ),
+                    React.createElement('div', { className: 'font-preview-box' },
+                        React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 10 } }, React.createElement('i', { className: 'fas fa-eye' }), ' ตัวอย่างการแสดงผล'),
+                        React.createElement('div', { style: { fontFamily: settings.displayFont, fontSize: 22, fontWeight: 600, marginBottom: 8, color: 'var(--gray-800)' } }, 'หัวข้อตัวอย่าง (Display)'),
+                        React.createElement('div', { style: { fontFamily: settings.bodyFont, fontSize: 15, color: 'var(--gray-600)', lineHeight: 1.7 } }, 'ข้อความเนื้อหาที่ใช้ฟอนต์ ', settings.bodyFontName, ' ทดสอบภาษาไทย: ฟอนต์สวย อ่านง่าย สบายตา'),
+                        React.createElement('div', { style: { fontSize: 11, color: 'var(--gray-400)', marginTop: 8 } }, 'หัวข้อ: ', settings.displayFontName, ' · เนื้อหา: ', settings.bodyFontName)
+                    )
+                )
+            );
+        }
+
+        function GoogleSheetsConfig({ toast }) {
+            const [scriptURL, setScriptURL] = useState(GOOGLE_SHEETS_CONFIG.scriptURL);
+            const [useLocal, setUseLocal] = useState(GOOGLE_SHEETS_CONFIG.useLocalStorage);
+            const s = SiteSettingsDB.get();
+
+            const saveConfig = () => {
+                GOOGLE_SHEETS_CONFIG.scriptURL = scriptURL;
+                GOOGLE_SHEETS_CONFIG.useLocalStorage = useLocal;
+                localStorage.setItem('formbloom_sheets_config', JSON.stringify({ scriptURL, useLocal }));
+                toast.show('บันทึกการตั้งค่า Google Sheets แล้ว 📊');
+            };
+
+            return React.createElement('div', { className: 'setting-section' },
+                React.createElement('div', { className: 'section-title' },
+                    React.createElement('i', { className: 'fab fa-google' }), ' ตั้งค่า Google Sheets'
+                ),
+                React.createElement('div', { className: 'info-box' },
+                    React.createElement('i', { className: 'fas fa-info-circle' }),
+                    React.createElement('div', null,
+                        React.createElement('strong', null, 'วิธีเชื่อมต่อ Google Sheets:'),
+                        React.createElement('br', null),
+                        '1. สร้าง Google Sheet ใหม่',
+                        React.createElement('br', null),
+                        '2. เปิด Apps Script (ส่วนขยาย > Apps Script)',
+                        React.createElement('br', null),
+                        '3. วางโค้ดจากไฟล์ google-apps-script.js',
+                        React.createElement('br', null),
+                        '4. Deploy เป็น Web App และคัดลอก URL มาใส่ด้านล่าง'
+                    )
+                ),
+                React.createElement('div', { className: 'form-group' },
+                    React.createElement('label', { className: 'form-label' }, 'Google Apps Script URL'),
+                    React.createElement('input', {
+                        className: 'form-input',
+                        type: 'url',
+                        placeholder: 'https://script.google.com/macros/s/.../exec',
+                        value: scriptURL,
+                        onChange: e => setScriptURL(e.target.value),
+                        disabled: useLocal
+                    })
+                ),
+                React.createElement('div', { className: 'form-group' },
+                    React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' } },
+                        React.createElement('input', {
+                            type: 'checkbox',
+                            checked: useLocal,
+                            onChange: e => setUseLocal(e.target.checked)
+                        }),
+                        React.createElement('span', null, 'ใช้ LocalStorage (สำหรับทดสอบ)')
+                    )
+                ),
+                React.createElement('button', { className: 'btn btn-primary', onClick: saveConfig },
+                    React.createElement('i', { className: 'fas fa-save' }), ' บันทึกการตั้งค่า'
+                )
+            );
+        }
+
+        function AdminPanel({ setMode, toast }) {
+            const [menu, setMenu] = useState('forms');
+            const [forms, setForms] = useState(() => [...DB.forms].sort((a, b) => getLatestDate(b) - getLatestDate(a)));
+            const [editing, setEditing] = useState(null);
+            const [viewResp, setViewResp] = useState(null);
+            const [page, setPage] = useState(1);
+            const perPage = 10;
+            const items = [
+                { id: 'forms', icon: 'fas fa-file-alt', label: 'ฟอร์มทั้งหมด' },
+                { id: 'create', icon: 'fas fa-plus-circle', label: 'สร้างฟอร์มใหม่' },
+                { id: 'responses', icon: 'fas fa-chart-bar', label: 'ผลคำตอบ' },
+                { id: 'settings', icon: 'fas fa-cog', label: 'ตั้งค่าเว็บ' },
+                { id: 'sheets', icon: 'fab fa-google', label: 'Google Sheets' },
+            ];
+            const refresh = () => { const s = [...DB.forms].sort((a, b) => getLatestDate(b) - getLatestDate(a)); setForms(s); };
+            const handleDelete = async (id) => {
+                const f = DB.forms.find(x => x.id === id);
+                const r = await SwalHelper.confirmDelete(`ลบฟอร์ม "${f?.title}"?`, 'ฟอร์มและคำตอบทั้งหมดจะถูกลบถาวร');
+                if (r.isConfirmed) {
+                    const i = DB.forms.findIndex(x => x.id === id); if (i > -1) DB.forms.splice(i, 1);
+                    await GoogleSheetsService.deleteForm(id);
+                    refresh(); toast.show('ลบฟอร์มแล้ว');
+                    Swal.fire({ icon: 'success', title: 'ลบสำเร็จ!', text: `"${f?.title}" ถูกลบแล้ว`, confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
+                }
+            };
+            const handleSave = async (data) => {
+                let savedForm;
+                if (editing) {
+                    const i = DB.forms.findIndex(x => x.id === editing.id);
+                    if (i > -1) {
+                        savedForm = { ...editing, ...data, updatedAt: new Date().toLocaleDateString('th-TH') };
+                        DB.forms[i] = savedForm;
+                    }
+                    Swal.fire({ icon: 'success', title: 'อัพเดทสำเร็จ!', confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
+                } else {
+                    savedForm = { id: 'form_' + Date.now(), ...data, createdAt: new Date().toLocaleDateString('th-TH'), responses: [] };
+                    DB.forms.unshift(savedForm);
+                    Swal.fire({ icon: 'success', title: 'สร้างสำเร็จ! 🎉', confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
+                }
+                await GoogleSheetsService.saveForm(savedForm);
+                refresh(); setEditing(null); setMenu('forms'); setPage(1);
+                toast.show(editing ? 'แก้ไขฟอร์มสำเร็จ 🌸' : 'สร้างฟอร์มใหม่สำเร็จ 🎉');
+            };
+            const s = SiteSettingsDB.get();
+            return React.createElement('div', { className: 'page-container' },
+                React.createElement('div', { style: { marginBottom: 24 } },
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 } },
+                        React.createElement('div', { style: { width: 38, height: 38, borderRadius: 11, background: 'linear-gradient(135deg, var(--pink-400), var(--pink-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 16, boxShadow: 'var(--shadow-pink)', flexShrink: 0 } }, React.createElement('i', { className: 'fas fa-shield-alt' })),
+                        React.createElement('div', null,
+                            React.createElement('div', { className: 'page-title', style: { fontFamily: s.displayFont } }, 'แดชบอร์ดแอดมิน'),
+                            React.createElement('div', { className: 'page-subtitle' }, 'จัดการฟอร์มและดูผลคำตอบ')
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'admin-layout' },
+                    React.createElement('div', { className: 'admin-sidebar' },
+                        React.createElement('div', { className: 'sidebar-inner' },
+                            React.createElement('div', { className: 'sidebar-section-label' }, 'เมนูหลัก'),
+                            items.map(m => React.createElement('div', { key: m.id, className: `sidebar-item ${menu === m.id && !viewResp && !editing ? 'active' : ''}`, onClick: () => { setMenu(m.id); setViewResp(null); if (m.id !== 'create') setEditing(null); } },
+                                React.createElement('i', { className: m.icon }), m.label
+                            )),
+                            React.createElement('div', { className: 'sidebar-divider' }),
+                            React.createElement('div', { className: 'sidebar-stat' }, React.createElement('span', null, 'ฟอร์มทั้งหมด'), React.createElement('span', { className: 'badge badge-pink' }, DB.forms.length))
+                        )
+                    ),
+                    React.createElement('div', { className: 'admin-content' },
+                        menu === 'forms' && !editing && !viewResp && React.createElement(AdminFormsList, { forms: forms, onEdit: f => { setEditing(f); setMenu('create'); }, onDelete: handleDelete, onNew: () => { setEditing(null); setMenu('create'); }, onViewResp: f => { setViewResp(f); setMenu('responses'); }, toast: toast, page: page, setPage: setPage, perPage: perPage }),
+                        menu === 'create' && React.createElement(FormBuilder, { key: editing?.id || 'new', initialForm: editing, onSave: handleSave, onCancel: () => { setEditing(null); setMenu('forms'); } }),
+                        menu === 'responses' && React.createElement(ResponsesView, { forms: forms, selected: viewResp }),
+                        menu === 'settings' && React.createElement(SiteSettings, { toast: toast }),
+                        menu === 'sheets' && React.createElement(GoogleSheetsConfig, { toast: toast })
+                    )
+                )
+            );
+        }
+
+        function AdminFormsList({ forms, onEdit, onDelete, onNew, onViewResp, toast, page, setPage, perPage }) {
+            const total = Math.ceil(forms.length / perPage);
+            const items = forms.slice((page - 1) * perPage, page * perPage);
+            const s = SiteSettingsDB.get();
+            const copyUrl = (id) => {
+                const url = `${window.location.origin}${window.location.pathname}?form=${id}`;
+                navigator.clipboard?.writeText(url).catch(() => { });
+                toast.show('คัดลอก URL แล้ว 📋');
+                Swal.fire({ icon: 'success', title: 'คัดลอกสำเร็จ!', text: 'URL ถูกคัดลอกแล้ว', confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
+            };
+            return React.createElement('div', null,
+                React.createElement('div', { className: 'page-header' },
+                    React.createElement('div', null, React.createElement('div', { className: 'page-title', style: { fontFamily: s.displayFont } }, 'ฟอร์มทั้งหมด'), React.createElement('div', { className: 'page-subtitle' }, forms.length, ' ฟอร์ม')),
+                    React.createElement('button', { className: 'btn btn-primary', onClick: onNew }, React.createElement('i', { className: 'fas fa-plus' }), ' สร้างฟอร์มใหม่')
+                ),
+                forms.length === 0 && React.createElement('div', { className: 'card' }, React.createElement('div', { className: 'empty-state' }, React.createElement('div', { className: 'empty-icon' }, '📋'), React.createElement('div', { className: 'empty-title' }, 'ยังไม่มีฟอร์ม'), React.createElement('div', { className: 'empty-text' }, 'กดปุ่ม "สร้างฟอร์มใหม่" เพื่อเริ่มต้น'))),
+                React.createElement('div', { className: 'forms-grid' },
+                    items.map(form => {
+                        const theme = getFormTheme(form);
+                        return React.createElement('div', { key: form.id, className: 'form-card', style: { cursor: 'default' } },
+                            React.createElement('div', { className: 'form-card-accent', style: { background: theme.gradient } }),
+                            React.createElement('div', { className: 'form-card-thumb' },
+                                form.thumbnailImage ? React.createElement('img', { src: form.thumbnailImage, alt: form.title, onError: e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; } }) : null,
+                                React.createElement('i', { className: 'fas fa-file-alt', style: { display: form.thumbnailImage ? 'none' : 'flex' } })
+                            ),
+                            React.createElement('div', { className: 'form-card-body' },
+                                React.createElement('div', { className: 'form-card-title', style: { fontFamily: s.displayFont } }, form.title),
+                                React.createElement('div', { className: 'form-card-desc', style: { fontFamily: s.bodyFont } }, form.description),
+                                React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 } },
+                                    React.createElement('span', { className: 'badge badge-pink' }, React.createElement('i', { className: 'fas fa-question-circle' }), ' ', form.questions.length, ' คำถาม'),
+                                    React.createElement('span', { className: 'badge badge-green' }, React.createElement('i', { className: 'fas fa-inbox' }), ' ', form.responses.length, ' คำตอบ'),
+                                    React.createElement('span', { className: 'badge', style: { background: theme.light + '80', color: theme.secondary } },
+                                        React.createElement('span', { className: 'color-dot', style: { background: theme.primary } }),
+                                        theme.isCustom ? '🎨 กำหนดเอง' : theme.name
+                                    ),
+                                    form.updatedAt && React.createElement('span', { className: 'badge badge-blue' }, React.createElement('i', { className: 'fas fa-clock' }), ' อัพเดทแล้ว')
+                                )
+                            ),
+                            React.createElement('div', { className: 'url-box', onClick: () => copyUrl(form.id) },
+                                React.createElement('i', { className: 'fas fa-link' }),
+                                React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '?form=', form.id),
+                                React.createElement('i', { className: 'fas fa-copy', style: { opacity: 0.5 } })
+                            ),
+                            React.createElement('div', { className: 'form-card-footer' },
+                                React.createElement('button', { className: 'btn btn-ghost btn-sm', style: { flex: 1 }, onClick: () => onEdit(form) }, React.createElement('i', { className: 'fas fa-edit' }), ' แก้ไข'),
+                                React.createElement('button', { className: 'btn btn-ghost btn-sm', style: { flex: 1, color: theme.primary }, onClick: () => onViewResp(form) }, React.createElement('i', { className: 'fas fa-chart-bar' }), ' ผลลัพธ์'),
+                                React.createElement('button', { className: 'btn btn-danger btn-sm btn-icon', onClick: () => onDelete(form.id) }, React.createElement('i', { className: 'fas fa-trash' }))
+                            )
+                        );
+                    })
+                ),
+                React.createElement(Pagination, { currentPage: page, totalPages: total, onPageChange: setPage })
+            );
+        }
+
+        function FormBuilder({ initialForm, onSave, onCancel }) {
+            const [title, setTitle] = useState(initialForm?.title || '');
+            const [desc, setDesc] = useState(initialForm?.description || '');
+            const [theme, setTheme] = useState(initialForm?.theme || 'pink');
+            const [useCustom, setUseCustom] = useState(!!initialForm?.customTheme);
+            const [cp, setCp] = useState(initialForm?.customTheme?.primary || '#f54d8f');
+            const [cs, setCs] = useState(initialForm?.customTheme?.secondary || '#e0317a');
+            const [thumb, setThumb] = useState(initialForm?.thumbnailImage || '');
+            const [cover, setCover] = useState(initialForm?.coverImage || '');
+            const [questions, setQuestions] = useState(initialForm?.questions || []);
+            const s = SiteSettingsDB.get();
+            const addQ = () => setQuestions(q => [...q, { id: 'q_' + Date.now(), text: '', type: 'text', required: false, options: ['ตัวเลือกที่ 1'] }]);
+            const updQ = (id, field, val) => setQuestions(q => q.map(x => x.id === id ? { ...x, [field]: val } : x));
+            const removeQ = id => setQuestions(q => q.filter(x => x.id !== id));
+            const moveQ = (id, dir) => {
+                const i = questions.findIndex(x => x.id === id);
+                if ((dir === -1 && i === 0) || (dir === 1 && i === questions.length - 1)) return;
+                const arr = [...questions];[arr[i], arr[i + dir]] = [arr[i + dir], arr[i]]; setQuestions(arr);
+            };
+            const addOpt = qid => setQuestions(q => q.map(x => x.id === qid ? { ...x, options: [...(x.options || []), `ตัวเลือกที่ ${(x.options || []).length + 1}`] } : x));
+            const updOpt = (qid, i, val) => setQuestions(q => q.map(x => x.id === qid ? { ...x, options: x.options.map((o, j) => j === i ? val : o) } : x));
+            const removeOpt = (qid, i) => setQuestions(q => q.map(x => x.id === qid ? { ...x, options: x.options.filter((_, j) => j !== i) } : x));
+            const handleSave = async () => {
+                if (!title.trim()) { await SwalHelper.error('กรุณาใส่ชื่อฟอร์ม'); return; }
+                if (questions.length === 0) { await SwalHelper.error('กรุณาเพิ่มอย่างน้อย 1 คำถาม'); return; }
+                const r = await SwalHelper.confirmSave(`${initialForm ? 'บันทึกการแก้ไข' : 'สร้างฟอร์ม'}?`, `ฟอร์ม "${title}"`);
+                if (r.isConfirmed) onSave({ title, description: desc, theme: useCustom ? 'pink' : theme, customTheme: useCustom ? { primary: cp, secondary: cs } : null, thumbnailImage: thumb, coverImage: cover, questions });
+            };
+            const ct = useCustom ? { primary: cp, secondary: cs, light: cp + '20', gradient: `linear-gradient(135deg, ${cp}, ${cs})` } : { ...PRESET_THEMES[theme], gradient: `linear-gradient(135deg, ${PRESET_THEMES[theme].primary}, ${PRESET_THEMES[theme].secondary})` };
+            const typeLabels = { text: 'ข้อความสั้น', textarea: 'ข้อความยาว', radio: 'ตัวเลือกเดียว', checkbox: 'ตัวเลือกหลายข้อ' };
+            return React.createElement('div', null,
+                React.createElement('div', { className: 'page-header' },
+                    React.createElement('div', null, React.createElement('div', { className: 'page-title' }, initialForm ? 'แก้ไขฟอร์ม' : 'สร้างฟอร์มใหม่')),
+                    React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                        React.createElement('button', { className: 'btn btn-ghost', onClick: onCancel }, React.createElement('i', { className: 'fas fa-times' }), ' ยกเลิก'),
+                        React.createElement('button', { className: 'btn btn-primary', onClick: handleSave, style: { background: ct.gradient } }, React.createElement('i', { className: 'fas fa-save' }), ' บันทึก')
+                    )
+                ),
+                React.createElement('div', { className: 'card', style: { marginBottom: 16 } },
+                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'ชื่อฟอร์ม *'), React.createElement('input', { className: 'form-input', placeholder: 'เช่น แบบสำรวจความพึงพอใจ', value: title, onChange: e => setTitle(e.target.value), style: { fontFamily: s.displayFont, fontWeight: 600, fontSize: 16 } })),
+                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'คำอธิบาย'), React.createElement('textarea', { className: 'form-textarea', placeholder: 'อธิบายวัตถุประสงค์...', value: desc, onChange: e => setDesc(e.target.value), style: { minHeight: 70, fontFamily: s.bodyFont } })),
+                    React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, 'สีธีม'),
+                        React.createElement('div', { className: 'theme-swatches' },
+                            Object.entries(PRESET_THEMES).map(([k, t]) => React.createElement('div', { key: k, className: `theme-swatch ${!useCustom && theme === k ? 'active' : ''}`, onClick: () => { setUseCustom(false); setTheme(k); } },
+                                React.createElement('div', { className: 'swatch-circle', style: { background: `linear-gradient(135deg, ${t.primary}, ${t.secondary})` } }),
+                                React.createElement('span', { className: 'swatch-label' }, t.name)
+                            ))
+                        ),
+                        React.createElement('div', { style: { marginTop: 12 } },
+                            React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' } },
+                                React.createElement('input', { type: 'checkbox', checked: useCustom, onChange: e => setUseCustom(e.target.checked) }),
+                                React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'var(--gray-600)' } }, React.createElement('i', { className: 'fas fa-magic', style: { marginRight: 5 } }), 'กำหนดสีเอง')
+                            )
+                        ),
+                        useCustom && React.createElement('div', { className: 'custom-color-box' },
+                            React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'var(--gray-600)', marginBottom: 10 } }, React.createElement('i', { className: 'fas fa-eye-dropper' }), ' เลือกสี'),
+                            React.createElement('div', { className: 'color-row' }, React.createElement('span', { className: 'color-row-label', style: { fontFamily: s.bodyFont } }, 'สีหลัก:'), React.createElement('input', { type: 'color', className: 'color-picker-input', value: cp, onChange: e => setCp(e.target.value) }), React.createElement('span', { className: 'color-val' }, cp.toUpperCase())),
+                            React.createElement('div', { className: 'color-row' }, React.createElement('span', { className: 'color-row-label', style: { fontFamily: s.bodyFont } }, 'สีรอง:'), React.createElement('input', { type: 'color', className: 'color-picker-input', value: cs, onChange: e => setCs(e.target.value) }), React.createElement('span', { className: 'color-val' }, cs.toUpperCase())),
+                            React.createElement('div', { style: { height: 44, borderRadius: 'var(--radius-sm)', background: ct.gradient, marginTop: 10, border: '1px solid var(--gray-200)' } })
+                        )
+                    ),
+                    React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, React.createElement('i', { className: 'fas fa-image' }), ' URL รูปขนาดเล็ก (รายการฟอร์ม)'),
+                        React.createElement('input', { className: 'form-input', type: 'url', placeholder: 'https://example.com/thumbnail.jpg', value: thumb, onChange: e => setThumb(e.target.value) }),
+                        thumb && React.createElement('div', { className: 'img-preview' }, React.createElement('img', { src: thumb, alt: 'Thumbnail', onError: e => e.target.style.display = 'none' })),
+                        React.createElement('div', { className: 'img-hint' }, React.createElement('span', null, React.createElement('i', { className: 'fas fa-info-circle' }), ' แนะนำ 400x300 px'))
+                    ),
+                    React.createElement('div', { className: 'form-group', style: { marginBottom: 0 } },
+                        React.createElement('label', { className: 'form-label' }, React.createElement('i', { className: 'fas fa-images' }), ' URL รูปปก (หน้ากรอกฟอร์ม)'),
+                        React.createElement('input', { className: 'form-input', type: 'url', placeholder: 'https://example.com/cover.jpg', value: cover, onChange: e => setCover(e.target.value) }),
+                        cover && React.createElement('div', { className: 'img-preview' }, React.createElement('img', { src: cover, alt: 'Cover', onError: e => e.target.style.display = 'none' })),
+                        React.createElement('div', { className: 'img-hint' }, React.createElement('span', null, React.createElement('i', { className: 'fas fa-desktop' }), ' แนะนำ 1200x400 px'), React.createElement('span', null, React.createElement('i', { className: 'fas fa-mobile-alt' }), ' หรือ 600x400 px'))
+                    )
+                ),
+                React.createElement('div', { className: 'card', style: { marginBottom: 16, background: 'var(--gray-50)' } },
+                    React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 12 } }, React.createElement('i', { className: 'fas fa-eye' }), ' ตัวอย่างฟอร์ม'),
+                    React.createElement('div', { style: { borderRadius: 'var(--radius-md)', overflow: 'hidden', border: `1.5px solid ${ct.light}` } },
+                        cover && React.createElement('div', { style: { height: 80, overflow: 'hidden' } }, React.createElement('img', { src: cover, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover' }, onError: e => e.target.style.display = 'none' })),
+                        React.createElement('div', { style: { background: ct.gradient, padding: '16px 20px', color: 'white' } },
+                            React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 17, fontWeight: 600 } }, title || 'ชื่อฟอร์ม'),
+                            React.createElement('div', { style: { fontSize: 12, opacity: 0.85, fontFamily: s.bodyFont } }, desc || 'คำอธิบายฟอร์ม')
+                        ),
+                        React.createElement('div', { style: { padding: 14, background: 'white' } },
+                            questions.length === 0 ? React.createElement('div', { style: { textAlign: 'center', padding: 16, color: 'var(--gray-400)', fontSize: 13 } }, React.createElement('i', { className: 'fas fa-plus-circle' }), ' ยังไม่มีคำถาม')
+                                : questions.slice(0, 2).map((q, i) => React.createElement('div', { key: q.id, style: { marginBottom: 10, padding: 10, background: ct.light + '40', borderRadius: 8, border: `1px solid ${ct.light}` } },
+                                    React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--gray-700)', marginBottom: 6, fontFamily: s.bodyFont } }, i + 1, '. ', q.text || 'คำถาม', q.required && React.createElement('span', { style: { color: ct.primary } }, ' *')),
+                                    (q.type === 'radio' || q.type === 'checkbox') && (q.options || []).slice(0, 2).map((o, j) => React.createElement('div', { key: j, style: { display: 'flex', alignItems: 'center', gap: 7, padding: '4px 0' } },
+                                        React.createElement('div', { style: { width: 14, height: 14, borderRadius: q.type === 'radio' ? '50%' : 3, border: `2px solid ${ct.primary}` } }),
+                                        React.createElement('span', { style: { fontSize: 12, fontFamily: s.bodyFont } }, o)
+                                    )),
+                                    (q.type === 'radio' || q.type === 'checkbox') && (q.options || []).length > 2 && React.createElement('div', { style: { fontSize: 11, color: 'var(--gray-400)', fontFamily: s.bodyFont } }, '+', (q.options || []).length - 2, ' ตัวเลือกเพิ่มเติม'),
+                                    q.type === 'text' && React.createElement('div', { style: { padding: '6px 10px', background: 'white', borderRadius: 6, border: '1px solid var(--gray-200)', color: 'var(--gray-400)', fontSize: 12, fontFamily: s.bodyFont } }, 'ข้อความสั้น...'),
+                                    q.type === 'textarea' && React.createElement('div', { style: { padding: '6px 10px', background: 'white', borderRadius: 6, border: '1px solid var(--gray-200)', color: 'var(--gray-400)', fontSize: 12, minHeight: 44, fontFamily: s.bodyFont } }, 'ข้อความยาว...')
+                                )),
+                            questions.length > 2 && React.createElement('div', { style: { textAlign: 'center', fontSize: 12, color: 'var(--gray-400)', fontFamily: s.bodyFont } }, '+', questions.length - 2, ' คำถามเพิ่มเติม')
+                        )
+                    )
+                ),
+                questions.map((q, i) => React.createElement('div', { key: q.id, className: 'question-card', style: { borderColor: ct.light } },
+                    React.createElement('div', { className: 'question-header' },
+                        React.createElement('div', { className: 'q-number', style: { background: ct.gradient } }, i + 1),
+                        React.createElement('select', { className: 'form-select', style: { flex: '0 0 auto', width: 'auto', padding: '6px 32px 6px 10px', minHeight: 34 }, value: q.type, onChange: e => updQ(q.id, 'type', e.target.value) },
+                            Object.entries(typeLabels).map(([v, l]) => React.createElement('option', { key: v, value: v }, l))
+                        ),
+                        React.createElement('div', { className: 'q-actions' },
+                            React.createElement('button', { className: 'btn btn-ghost btn-icon btn-sm', onClick: () => moveQ(q.id, -1), disabled: i === 0 }, React.createElement('i', { className: 'fas fa-chevron-up' })),
+                            React.createElement('button', { className: 'btn btn-ghost btn-icon btn-sm', onClick: () => moveQ(q.id, 1), disabled: i === questions.length - 1 }, React.createElement('i', { className: 'fas fa-chevron-down' })),
+                            React.createElement('button', { className: 'btn btn-danger btn-icon btn-sm', onClick: () => removeQ(q.id) }, React.createElement('i', { className: 'fas fa-trash' }))
+                        )
+                    ),
+                    React.createElement('input', { className: 'form-input', placeholder: 'พิมพ์คำถามที่นี่...', value: q.text, onChange: e => updQ(q.id, 'text', e.target.value), style: { marginBottom: 10, fontFamily: s.bodyFont } }),
+                    (q.type === 'radio' || q.type === 'checkbox') && React.createElement('div', null,
+                        (q.options || []).map((opt, j) => React.createElement('div', { key: j, className: 'option-row' },
+                            React.createElement('div', { className: `option-dot ${q.type === 'checkbox' ? 'sq' : ''}`, style: { borderColor: ct.primary } }),
+                            React.createElement('input', { className: 'option-input', value: opt, onChange: e => updOpt(q.id, j, e.target.value), placeholder: `ตัวเลือกที่ ${j + 1}`, style: { fontFamily: s.bodyFont } }),
+                            React.createElement('button', { className: 'btn btn-ghost btn-icon btn-sm', onClick: () => removeOpt(q.id, j), disabled: (q.options || []).length <= 1 }, React.createElement('i', { className: 'fas fa-times', style: { color: 'var(--gray-400)' } }))
+                        )),
+                        React.createElement('button', { className: 'add-option-btn', onClick: () => addOpt(q.id), style: { color: ct.primary, fontFamily: s.bodyFont } }, React.createElement('i', { className: 'fas fa-plus' }), ' เพิ่มตัวเลือก')
+                    ),
+                    q.type === 'text' && React.createElement('div', { style: { padding: '9px 12px', background: 'var(--gray-50)', borderRadius: 8, fontSize: 13, color: 'var(--gray-400)', border: '1px dashed var(--gray-200)', fontFamily: s.bodyFont } }, React.createElement('i', { className: 'fas fa-font' }), ' ผู้ตอบจะพิมพ์ข้อความสั้น'),
+                    q.type === 'textarea' && React.createElement('div', { style: { padding: '9px 12px', background: 'var(--gray-50)', borderRadius: 8, fontSize: 13, color: 'var(--gray-400)', border: '1px dashed var(--gray-200)', fontFamily: s.bodyFont } }, React.createElement('i', { className: 'fas fa-align-left' }), ' ผู้ตอบจะพิมพ์ข้อความยาว'),
+                    React.createElement('div', { className: 'required-row' },
+                        React.createElement('label', { className: 'toggle' }, React.createElement('input', { type: 'checkbox', checked: q.required, onChange: e => updQ(q.id, 'required', e.target.checked) }), React.createElement('span', { className: 'toggle-slider', style: q.required ? { background: ct.primary } : {} })),
+                        React.createElement('span', { style: { fontFamily: s.bodyFont } }, 'จำเป็นต้องตอบ'),
+                        q.required && React.createElement('span', { className: 'badge', style: { background: ct.light, color: ct.secondary, fontFamily: s.bodyFont } }, 'required')
+                    )
+                )),
+                React.createElement('button', { className: 'btn btn-outline w-full', style: { padding: 14, borderStyle: 'dashed', borderWidth: 2, borderColor: ct.light, color: ct.primary, fontFamily: s.bodyFont }, onClick: addQ }, React.createElement('i', { className: 'fas fa-plus-circle' }), ' เพิ่มคำถามใหม่'),
+                React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 16 } },
+                    React.createElement('button', { className: 'btn btn-ghost', onClick: onCancel }, React.createElement('i', { className: 'fas fa-times' }), ' ยกเลิก'),
+                    React.createElement('button', { className: 'btn btn-primary btn-lg', style: { flex: 1, background: ct.gradient }, onClick: handleSave }, React.createElement('i', { className: 'fas fa-save' }), ' ', initialForm ? 'บันทึกการแก้ไข' : 'สร้างฟอร์ม')
+                )
+            );
+        }
+
+        function ResponsesView({ forms, selected }) {
+            const [active, setActive] = useState(selected || forms[0]);
+            const chartRefs = useRef({});
+            const s = SiteSettingsDB.get();
+            useEffect(() => { if (selected) setActive(selected); }, [selected]);
+            useEffect(() => {
+                if (!active) return;
+                const theme = getFormTheme(active);
+                active.questions.filter(q => q.type === 'radio' || q.type === 'checkbox').forEach(q => {
+                    const canvas = chartRefs.current[q.id]; if (!canvas) return;
+                    const ex = Chart.getChart(canvas); if (ex) ex.destroy();
+                    const counts = {}; (q.options || []).forEach(o => counts[o] = 0);
+                    active.responses.forEach(r => { const a = r.answers[q.id]; if (Array.isArray(a)) a.forEach(x => { if (counts[x] !== undefined) counts[x]++; }); else if (a && counts[a] !== undefined) counts[a]++; });
+                    const pal = [theme.primary, theme.secondary, theme.primary + 'cc', theme.secondary + 'cc', theme.primary + '99', theme.secondary + '99'];
+                    new Chart(canvas, { type: q.type === 'radio' ? 'doughnut' : 'bar', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: pal, borderWidth: 0, borderRadius: q.type === 'checkbox' ? 6 : 0 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: q.type === 'radio' ? 'right' : 'bottom', labels: { font: { family: s.bodyFont, size: 11 }, padding: 8 } } }, scales: q.type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {} } });
+                });
+            }, [active]);
+            if (!active) return React.createElement('div', { className: 'card' }, React.createElement('div', { className: 'empty-state' }, React.createElement('div', { className: 'empty-icon' }, '📊'), React.createElement('div', { className: 'empty-title' }, 'ไม่มีข้อมูล')));
+            const theme = getFormTheme(active);
+            return React.createElement('div', null,
+                React.createElement('div', { className: 'page-header' }, React.createElement('div', null, React.createElement('div', { className: 'page-title' }, 'ผลคำตอบ'), React.createElement('div', { className: 'page-subtitle' }, active.title))),
+                React.createElement('div', { style: { marginBottom: 18 } },
+                    React.createElement('select', { className: 'form-select', style: { maxWidth: 380, fontFamily: s.bodyFont }, value: active.id, onChange: e => { const f = forms.find(x => x.id === e.target.value); if (f) setActive(f); } },
+                        forms.map(f => React.createElement('option', { key: f.id, value: f.id }, f.title))
+                    )
+                ),
+                React.createElement('div', { className: 'stats-row' },
+                    [['คำตอบทั้งหมด', active.responses.length], ['จำนวนคำถาม', active.questions.length], ['คำถามบังคับ', active.questions.filter(q => q.required).length]].map(([label, num]) => (
+                        React.createElement('div', { key: label, className: 'stat-card' }, React.createElement('div', { className: 'stat-number', style: { color: theme.primary, fontFamily: s.displayFont } }, num), React.createElement('div', { className: 'stat-label', style: { fontFamily: s.bodyFont } }, label))
+                    ))
+                ),
+                active.questions.some(q => q.type === 'radio' || q.type === 'checkbox') && React.createElement('div', { className: 'card', style: { marginBottom: 16 } },
+                    React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--gray-700)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 } }, React.createElement('i', { className: 'fas fa-chart-pie', style: { color: theme.primary } }), ' สรุปภาพรวม'),
+                    React.createElement('div', { className: 'chart-grid' },
+                        active.questions.filter(q => q.type === 'radio' || q.type === 'checkbox').map(q => (
+                            React.createElement('div', { key: q.id, className: 'chart-card' }, React.createElement('div', { className: 'chart-card-title', style: { fontFamily: s.bodyFont } }, q.text), React.createElement('canvas', { ref: el => chartRefs.current[q.id] = el, height: '200' }))
+                        ))
+                    )
+                ),
+                React.createElement('div', { className: 'card' },
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontFamily: s.displayFont, fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--gray-700)' } },
+                        React.createElement('i', { className: 'fas fa-table', style: { color: theme.primary } }), ' รายละเอียดคำตอบทั้งหมด',
+                        React.createElement('span', { className: 'badge', style: { background: theme.light + '80', color: theme.secondary } }, active.responses.length, ' รายการ')
+                    ),
+                    active.responses.length === 0 ? React.createElement('div', { className: 'empty-state', style: { padding: 36 } }, React.createElement('div', { className: 'empty-icon', style: { fontSize: 28 } }, '📭'), React.createElement('div', { className: 'empty-title', style: { fontFamily: s.displayFont } }, 'ยังไม่มีคำตอบ'))
+                        : React.createElement('div', { className: 'table-wrap' },
+                            React.createElement('table', { className: 'resp-table' },
+                                React.createElement('thead', null,
+                                    React.createElement('tr', null,
+                                        React.createElement('th', { style: { fontFamily: s.bodyFont } }, '#'),
+                                        React.createElement('th', { style: { fontFamily: s.bodyFont } }, 'เวลาส่ง'),
+                                        active.questions.map(q => React.createElement('th', { key: q.id, style: { fontFamily: s.bodyFont } }, q.text.length > 18 ? q.text.slice(0, 18) + '…' : q.text))
+                                    )
+                                ),
+                                React.createElement('tbody', null,
+                                    active.responses.map((r, i) => React.createElement('tr', { key: r.id },
+                                        React.createElement('td', { style: { fontFamily: s.bodyFont } }, i + 1),
+                                        React.createElement('td', { style: { fontFamily: s.bodyFont } }, r.submittedAt),
+                                        active.questions.map(q => { const a = r.answers[q.id]; return React.createElement('td', { key: q.id, title: Array.isArray(a) ? a.join(', ') : (a || '-'), style: { fontFamily: s.bodyFont } }, Array.isArray(a) ? a.join(', ') : (a || React.createElement('span', { style: { color: 'var(--gray-300)' } }, '—'))); })
+                                    ))
+                                )
+                            )
+                        )
+                )
+            );
+        }
+
+        function App() {
+            const toast = useToast();
+            const [mode, setMode] = useState('home');
+            const [admin, setAdmin] = useState(false);
+            const [formId, setFormId] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [, forceUpdate] = useState({});
+
+            useEffect(() => {
+                const loadData = async () => {
+                    try {
+                        const forms = await GoogleSheetsService.getForms();
+                        DB.forms = forms;
+                        forceUpdate({});
+                    } catch (error) {
+                        console.error('Failed to load forms:', error);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                loadData();
+
+                const params = new URLSearchParams(window.location.search);
+                const fid = params.get('form');
+                if (fid) {
+                    setFormId(fid);
+                    setMode('fillform');
+                }
+            }, []);
+
+            useEffect(() => {
+                const h = () => { forceUpdate({}); SiteSettingsDB.applyTheme(); SiteSettingsDB.applyFonts(); };
+                window.addEventListener('storage', h);
+                return () => window.removeEventListener('storage', h);
+            }, []);
+
+            if (loading) {
+                return React.createElement('div', { className: 'login-wrap' },
+                    React.createElement('div', { className: 'login-card' },
+                        React.createElement('div', { className: 'spinner', style: { margin: '0 auto', width: 40, height: 40, borderWidth: 3, borderTopColor: 'var(--pink-500)' } }),
+                        React.createElement('div', { style: { marginTop: 16, color: 'var(--gray-500)' } }, 'กำลังโหลดข้อมูล...')
+                    )
+                );
+            }
+
+            return React.createElement(React.Fragment, null,
+                React.createElement(ToastContainer, { toasts: toast.toasts }),
+                mode !== 'login' && React.createElement(Navbar, { mode: mode, setMode: setMode, adminLoggedIn: admin, setAdminLoggedIn: setAdmin }),
+                mode === 'home' && React.createElement(HomePage, { setMode: setMode, setCurrentFormId: setFormId }),
+                mode === 'formlist' && React.createElement(FormListPage, { setMode: setMode, setCurrentFormId: setFormId }),
+                mode === 'fillform' && React.createElement(FillFormPage, { formId: formId, setMode: setMode, toast: toast }),
+                mode === 'login' && (admin
+                    ? (() => { setMode('admin'); return null; })()
+                    : React.createElement(React.Fragment, null,
+                        React.createElement(Navbar, { mode: mode, setMode: setMode, adminLoggedIn: admin, setAdminLoggedIn: setAdmin }),
+                        React.createElement(AdminLogin, { onLogin: () => { setAdmin(true); setMode('admin'); }, toast: toast })
+                    )
+                ),
+                mode === 'admin' && (admin
+                    ? React.createElement(AdminPanel, { setMode: setMode, toast: toast })
+                    : (() => { setMode('login'); return null; })()
+                )
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+    </script>
+</body>
+
+</html>
