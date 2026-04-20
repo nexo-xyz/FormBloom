@@ -1718,14 +1718,11 @@
         const { useState, useEffect, useCallback, useRef } = React;
 
         // ========== GOOGLE SHEETS CONFIGURATION ==========
-        // ระบบใช้ Google Sheets เป็นฐานข้อมูลกลางเท่านั้น
-        // ทุกเบราว์เซอร์จะอ่าน/เขียนข้อมูลจาก Sheets เดียวกัน
         const GOOGLE_SHEETS_CONFIG = {
             scriptURL: 'https://script.google.com/macros/s/AKfycbwQJyjn4qC9gm1NXvGMqkbRF56Gt1vdMRt29DyZxOU9GBCbuDKB7utM_keQTBM3UXT2/exec'
         };
 
-        // Google Apps Script Service — ติดต่อ Google Sheets เป็นฐานข้อมูลกลาง
-        // ใช้ Content-Type: text/plain เพื่อหลบ CORS preflight ของ Apps Script Web App
+        // Google Apps Script Service
         const GoogleSheetsService = {
             async call(action, data = {}) {
                 if (!GOOGLE_SHEETS_CONFIG.scriptURL) {
@@ -1805,13 +1802,32 @@
             bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr'
         };
 
-        // SiteSettingsDB — เก็บค่าใน memory เท่านั้น โหลดจาก Google Sheets ตอนเปิดเว็บ
-        // ทุกเบราว์เซอร์จะใช้ค่าชุดเดียวกันจาก Sheets
+        // SiteSettingsDB — พร้อมฟังก์ชันโหลดฟอนต์แบบ Dynamic
         const SiteSettingsDB = {
             data: { ...DEFAULT_SITE_SETTINGS },
+
+            // ฟังก์ชันสำหรับโหลด Google Fonts
+            loadFonts(fontName) {
+                if (!fontName) return;
+                const font = GOOGLE_FONTS.find(f => f.name === fontName);
+                if (!font) return;
+
+                const linkId = `font-${fontName.replace(/\s+/g, '-').toLowerCase()}`;
+                if (!document.getElementById(linkId)) {
+                    const link = document.createElement('link');
+                    link.id = linkId;
+                    link.rel = 'stylesheet';
+                    // ใช้ display=swap เพื่อให้แสดงฟอนต์สำรองก่อน แล้วค่อยเปลี่ยนเมื่อโหลดเสร็จ
+                    link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`;
+                    document.head.appendChild(link);
+                    console.log(`[Font] Loading: ${fontName}`);
+                }
+            },
+
             get() {
                 return this.data;
             },
+
             async load() {
                 try {
                     const remote = await GoogleSheetsService.getSettings();
@@ -1821,12 +1837,30 @@
                 } catch (e) {
                     console.error('Failed to load settings from Sheets:', e);
                 }
-                this.applyTheme(); this.applyFonts();
+
+                // โหลดฟอนต์ที่บันทึกไว้
+                this.loadFonts(this.data.bodyFontName);
+                this.loadFonts(this.data.displayFontName);
+
+                this.applyTheme();
+                this.applyFonts();
                 return this.data;
             },
+
             async save(settings) {
                 this.data = { ...this.data, ...settings };
-                this.applyTheme(); this.applyFonts();
+
+                // โหลดฟอนต์ใหม่เมื่อมีการเปลี่ยน
+                if (settings.bodyFontName) {
+                    this.loadFonts(settings.bodyFontName);
+                }
+                if (settings.displayFontName) {
+                    this.loadFonts(settings.displayFontName);
+                }
+
+                this.applyTheme();
+                this.applyFonts();
+
                 try {
                     await GoogleSheetsService.saveSettings(this.data);
                 } catch (e) {
@@ -1834,20 +1868,46 @@
                     throw e;
                 }
             },
+
             applyTheme() {
-                const r = document.documentElement; const s = this.get();
+                const r = document.documentElement;
+                const s = this.get();
                 r.style.setProperty('--pink-500', s.primaryColor);
                 r.style.setProperty('--pink-600', s.secondaryColor);
                 r.style.setProperty('--pink-300', s.accentColor);
                 r.style.setProperty('--pink-50', s.backgroundColor);
             },
+
             applyFonts() {
-                const r = document.documentElement; const s = this.get();
-                r.style.setProperty('--font-th', s.bodyFont);
-                r.style.setProperty('--font-display', s.displayFont);
+                const r = document.documentElement;
+                const s = this.get();
+
+                // ตรวจสอบว่าฟอนต์มีอยู่จริง
+                const bodyFont = GOOGLE_FONTS.find(f => f.name === s.bodyFontName);
+                const displayFont = GOOGLE_FONTS.find(f => f.name === s.displayFontName);
+
+                if (bodyFont) {
+                    r.style.setProperty('--font-th', bodyFont.family);
+                } else {
+                    r.style.setProperty('--font-th', DEFAULT_SITE_SETTINGS.bodyFont);
+                }
+
+                if (displayFont) {
+                    r.style.setProperty('--font-display', displayFont.family);
+                } else {
+                    r.style.setProperty('--font-display', DEFAULT_SITE_SETTINGS.displayFont);
+                }
+
+                console.log('[Font] Applied:', {
+                    body: s.bodyFontName,
+                    display: s.displayFontName
+                });
             }
         };
-        SiteSettingsDB.applyTheme(); SiteSettingsDB.applyFonts();
+
+        // เรียกใช้ applyTheme และ applyFonts เริ่มต้น
+        SiteSettingsDB.applyTheme();
+        SiteSettingsDB.applyFonts();
 
         const PRESET_THEMES = {
             pink: { name: 'ชมพู', primary: '#f54d8f', secondary: '#e0317a', light: '#ffe3ef' },
@@ -1897,8 +1957,6 @@
         };
 
         // ========== ฟังก์ชันบีบอัดและขยายข้อมูล ==========
-        // ใช้ compressToEncodedURIComponent ซึ่ง output เป็น URL-safe อยู่แล้ว
-        // ไม่ต้องผ่าน btoa (ที่ใช้ไม่ได้กับ UTF-16 ทำให้สร้างลิงก์ไม่สำเร็จ)
         const Compressor = {
             encodeForm(form) {
                 try {
@@ -1916,10 +1974,8 @@
             decodeForm(encoded) {
                 try {
                     if (typeof LZString === 'undefined') return null;
-                    // รองรับลิงก์เก่า (Base64 + UTF16) ด้วย — ลองวิธีใหม่ก่อน
                     let jsonStr = LZString.decompressFromEncodedURIComponent(encoded);
                     if (!jsonStr) {
-                        // fallback ลิงก์เก่า
                         try {
                             let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
                             while (base64.length % 4) base64 += '=';
@@ -2284,17 +2340,24 @@
                 if (type === 'body') upd({ bodyFont: font.family, bodyFontName: font.name });
                 else upd({ displayFont: font.family, displayFontName: font.name });
             };
-            const save = () => { SiteSettingsDB.save(settings); toast.show('บันทึกการตั้งค่าเรียบร้อยแล้ว 🎨'); SwalHelper.success('บันทึกการตั้งค่าเว็บไซต์เรียบร้อยแล้ว!'); };
+            const save = async () => {
+                await SiteSettingsDB.save(settings);
+                toast.show('บันทึกการตั้งค่าเรียบร้อยแล้ว 🎨');
+                SwalHelper.success('บันทึกการตั้งค่าเว็บไซต์เรียบร้อยแล้ว!');
+            };
             const reset = async () => {
                 const r = await SwalHelper.confirmDelete('รีเซ็ตการตั้งค่า?', 'คุณแน่ใจหรือไม่ที่จะรีเซ็ตทั้งหมด?');
                 if (r.isConfirmed) {
                     const def = { siteName: 'FormBloom', siteDescription: 'ระบบสร้างและกรอกฟอร์มออนไลน์ สวยงาม ง่ายใช้ รองรับหลายฟอร์ม', logoType: 'icon', logoIcon: 'fa-feather-alt', logoImage: '', logoText: 'FB', primaryColor: '#f54d8f', secondaryColor: '#e0317a', accentColor: '#ffa3c7', backgroundColor: '#fff0f6', bodyFont: "'Noto Sans Thai', 'Sarabun', sans-serif", displayFont: "'Mitr', 'Noto Sans Thai', sans-serif", bodyFontName: 'Noto Sans Thai', displayFontName: 'Mitr' };
-                    setSettings(def); SiteSettingsDB.save(def); toast.show('รีเซ็ตการตั้งค่าแล้ว 🔄');
+                    setSettings(def);
+                    await SiteSettingsDB.save(def);
+                    toast.show('รีเซ็ตการตั้งค่าแล้ว 🔄');
                 }
             };
             const icons = [{ value: 'fa-feather-alt', label: 'ขนนก' }, { value: 'fa-file-alt', label: 'เอกสาร' }, { value: 'fa-clipboard-list', label: 'คลิปบอร์ด' }, { value: 'fa-pen', label: 'ปากกา' }, { value: 'fa-star', label: 'ดาว' }, { value: 'fa-heart', label: 'หัวใจ' }, { value: 'fa-crown', label: 'มงกุฎ' }, { value: 'fa-gem', label: 'เพชร' }];
             const cats = ['all', ...new Set(GOOGLE_FONTS.map(f => f.category))];
             const filteredFonts = GOOGLE_FONTS.filter(f => f.name.toLowerCase().includes(fontSearch.toLowerCase()) && (fontCat === 'all' || f.category === fontCat));
+            const s = settings;
 
             return React.createElement('div', null,
                 React.createElement('div', { className: 'page-header' },
@@ -2304,7 +2367,7 @@
                     ),
                     React.createElement('div', { style: { display: 'flex', gap: 8 } },
                         React.createElement('button', { className: 'btn btn-ghost', onClick: reset }, React.createElement('i', { className: 'fas fa-undo' }), ' รีเซ็ต'),
-                        React.createElement('button', { className: 'btn btn-primary', onClick: save, style: { background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` } }, React.createElement('i', { className: 'fas fa-save' }), ' บันทึก')
+                        React.createElement('button', { className: 'btn btn-primary', onClick: save, style: { background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})` } }, React.createElement('i', { className: 'fas fa-save' }), ' บันทึก')
                     )
                 ),
                 React.createElement('div', { className: 'tab-row' },
@@ -2313,35 +2376,35 @@
                 ),
                 tab === 'general' && React.createElement('div', { className: 'card' },
                     React.createElement('div', { className: 'section-title' }, React.createElement('i', { className: 'fas fa-globe' }), ' ข้อมูลเว็บไซต์'),
-                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'ชื่อเว็บไซต์'), React.createElement('input', { className: 'form-input', placeholder: 'FormBloom', value: settings.siteName, onChange: e => upd({ siteName: e.target.value }) })),
-                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'คำอธิบาย'), React.createElement('textarea', { className: 'form-textarea', placeholder: 'คำอธิบายสั้นๆ', value: settings.siteDescription, onChange: e => upd({ siteDescription: e.target.value }), style: { minHeight: 70 } })),
+                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'ชื่อเว็บไซต์'), React.createElement('input', { className: 'form-input', placeholder: 'FormBloom', value: s.siteName, onChange: e => upd({ siteName: e.target.value }) })),
+                    React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'คำอธิบาย'), React.createElement('textarea', { className: 'form-textarea', placeholder: 'คำอธิบายสั้นๆ', value: s.siteDescription, onChange: e => upd({ siteDescription: e.target.value }), style: { minHeight: 70 } })),
                     React.createElement('div', { className: 'divider' }),
                     React.createElement('div', { className: 'section-title' }, React.createElement('i', { className: 'fas fa-image' }), ' โลโก้'),
                     React.createElement('div', { className: 'form-group' },
                         React.createElement('label', { className: 'form-label' }, 'ประเภทโลโก้'),
-                        React.createElement('select', { className: 'form-select', value: settings.logoType, onChange: e => upd({ logoType: e.target.value }) },
+                        React.createElement('select', { className: 'form-select', value: s.logoType, onChange: e => upd({ logoType: e.target.value }) },
                             React.createElement('option', { value: 'icon' }, 'ไอคอน (Font Awesome)'),
                             React.createElement('option', { value: 'image' }, 'รูปภาพ (URL)'),
                             React.createElement('option', { value: 'text' }, 'ตัวอักษร')
                         )
                     ),
-                    settings.logoType === 'icon' && React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'เลือกไอคอน'), React.createElement('select', { className: 'form-select', value: settings.logoIcon, onChange: e => upd({ logoIcon: e.target.value }) }, icons.map(i => React.createElement('option', { key: i.value, value: i.value }, i.label)))),
-                    settings.logoType === 'image' && React.createElement('div', { className: 'form-group' },
+                    s.logoType === 'icon' && React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'เลือกไอคอน'), React.createElement('select', { className: 'form-select', value: s.logoIcon, onChange: e => upd({ logoIcon: e.target.value }) }, icons.map(i => React.createElement('option', { key: i.value, value: i.value }, i.label)))),
+                    s.logoType === 'image' && React.createElement('div', { className: 'form-group' },
                         React.createElement('label', { className: 'form-label' }, 'URL รูปภาพโลโก้'),
-                        React.createElement('input', { className: 'form-input', type: 'url', placeholder: 'https://example.com/logo.png', value: settings.logoImage, onChange: e => upd({ logoImage: e.target.value }) }),
-                        settings.logoImage && React.createElement('div', { className: 'img-preview' }, React.createElement('img', { src: settings.logoImage, alt: 'Logo', onError: e => e.target.style.display = 'none' }))
+                        React.createElement('input', { className: 'form-input', type: 'url', placeholder: 'https://example.com/logo.png', value: s.logoImage, onChange: e => upd({ logoImage: e.target.value }) }),
+                        s.logoImage && React.createElement('div', { className: 'img-preview' }, React.createElement('img', { src: s.logoImage, alt: 'Logo', onError: e => e.target.style.display = 'none' }))
                     ),
-                    settings.logoType === 'text' && React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'ตัวอักษร (สูงสุด 3)'), React.createElement('input', { className: 'form-input', maxLength: '3', placeholder: 'FB', value: settings.logoText, onChange: e => upd({ logoText: e.target.value.slice(0, 3) }) })),
+                    s.logoType === 'text' && React.createElement('div', { className: 'form-group' }, React.createElement('label', { className: 'form-label' }, 'ตัวอักษร (สูงสุด 3)'), React.createElement('input', { className: 'form-input', maxLength: '3', placeholder: 'FB', value: s.logoText, onChange: e => upd({ logoText: e.target.value.slice(0, 3) }) })),
                     React.createElement('div', { className: 'logo-preview-row' },
-                        React.createElement('div', { className: 'logo-preview-box', style: { background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` } },
-                            settings.logoType === 'icon' && React.createElement('i', { className: `fas ${settings.logoIcon}`, style: { color: 'white' } }),
-                            settings.logoType === 'image' && settings.logoImage && React.createElement('img', { src: settings.logoImage, alt: 'Logo', style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 } }),
-                            settings.logoType === 'image' && !settings.logoImage && React.createElement('i', { className: 'fas fa-image', style: { color: 'white' } }),
-                            settings.logoType === 'text' && React.createElement('span', { style: { color: 'white', fontFamily: settings.displayFont, fontWeight: 600 } }, settings.logoText || 'FB')
+                        React.createElement('div', { className: 'logo-preview-box', style: { background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})` } },
+                            s.logoType === 'icon' && React.createElement('i', { className: `fas ${s.logoIcon}`, style: { color: 'white' } }),
+                            s.logoType === 'image' && s.logoImage && React.createElement('img', { src: s.logoImage, alt: 'Logo', style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 } }),
+                            s.logoType === 'image' && !s.logoImage && React.createElement('i', { className: 'fas fa-image', style: { color: 'white' } }),
+                            s.logoType === 'text' && React.createElement('span', { style: { color: 'white', fontFamily: s.displayFont, fontWeight: 600 } }, s.logoText || 'FB')
                         ),
                         React.createElement('div', null,
-                            React.createElement('div', { style: { fontFamily: settings.displayFont, fontWeight: 600, fontSize: 18, color: 'var(--gray-700)' } }, settings.siteName || 'FormBloom'),
-                            React.createElement('div', { style: { fontSize: 12, color: 'var(--gray-400)', fontFamily: settings.bodyFont } }, settings.siteDescription?.slice(0, 50) || 'ระบบฟอร์มออนไลน์')
+                            React.createElement('div', { style: { fontFamily: s.displayFont, fontWeight: 600, fontSize: 18, color: 'var(--gray-700)' } }, s.siteName || 'FormBloom'),
+                            React.createElement('div', { style: { fontSize: 12, color: 'var(--gray-400)', fontFamily: s.bodyFont } }, s.siteDescription?.slice(0, 50) || 'ระบบฟอร์มออนไลน์')
                         )
                     ),
                     React.createElement('div', { className: 'divider' }),
@@ -2350,17 +2413,17 @@
                         React.createElement('div', { key: key, className: 'form-group' },
                             React.createElement('label', { className: 'form-label' }, label),
                             React.createElement('div', { className: 'color-row' },
-                                React.createElement('input', { type: 'color', className: 'color-picker-input', value: settings[key], onChange: e => upd({ [key]: e.target.value }) }),
-                                React.createElement('span', { className: 'color-val' }, settings[key].toUpperCase()),
-                                React.createElement('div', { style: { width: 32, height: 32, borderRadius: 8, background: settings[key], border: '1px solid var(--gray-200)', marginLeft: 4 } })
+                                React.createElement('input', { type: 'color', className: 'color-picker-input', value: s[key], onChange: e => upd({ [key]: e.target.value }) }),
+                                React.createElement('span', { className: 'color-val' }, s[key].toUpperCase()),
+                                React.createElement('div', { style: { width: 32, height: 32, borderRadius: 8, background: s[key], border: '1px solid var(--gray-200)', marginLeft: 4 } })
                             )
                         )
                     )),
                     React.createElement('div', { style: { padding: 16, background: 'var(--gray-50)', borderRadius: 'var(--radius-md)' } },
                         React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 12 } }, 'ตัวอย่างปุ่ม'),
                         React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
-                            React.createElement('button', { className: 'btn btn-primary', style: { background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` } }, React.createElement('i', { className: 'fas fa-check' }), ' ปุ่มหลัก'),
-                            React.createElement('button', { className: 'btn btn-outline', style: { color: settings.primaryColor, borderColor: settings.accentColor } }, 'ปุ่มรอง'),
+                            React.createElement('button', { className: 'btn btn-primary', style: { background: `linear-gradient(135deg, ${s.primaryColor}, ${s.secondaryColor})` } }, React.createElement('i', { className: 'fas fa-check' }), ' ปุ่มหลัก'),
+                            React.createElement('button', { className: 'btn btn-outline', style: { color: s.primaryColor, borderColor: s.accentColor } }, 'ปุ่มรอง'),
                             React.createElement('button', { className: 'btn btn-ghost' }, 'ปุ่มทั่วไป')
                         )
                     )
@@ -2369,13 +2432,13 @@
                     React.createElement('div', { className: 'section-title' }, React.createElement('i', { className: 'fas fa-font' }), ' ตั้งค่าฟอนต์'),
                     React.createElement('div', { className: 'form-group' },
                         React.createElement('label', { className: 'form-label' }, 'ฟอนต์หัวข้อ (Display Font)'),
-                        React.createElement('select', { className: 'form-select', value: settings.displayFontName, onChange: e => updFont('display', e.target.value) },
+                        React.createElement('select', { className: 'form-select', value: s.displayFontName, onChange: e => updFont('display', e.target.value) },
                             GOOGLE_FONTS.map(f => React.createElement('option', { key: f.name, value: f.name }, `${f.name} (${f.category})`))
                         )
                     ),
                     React.createElement('div', { className: 'form-group' },
                         React.createElement('label', { className: 'form-label' }, 'ฟอนต์เนื้อหา (Body Font)'),
-                        React.createElement('select', { className: 'form-select', value: settings.bodyFontName, onChange: e => updFont('body', e.target.value) },
+                        React.createElement('select', { className: 'form-select', value: s.bodyFontName, onChange: e => updFont('body', e.target.value) },
                             GOOGLE_FONTS.map(f => React.createElement('option', { key: f.name, value: f.name }, `${f.name} (${f.category})`))
                         )
                     ),
@@ -2388,7 +2451,7 @@
                         )
                     ),
                     React.createElement('div', { className: 'font-grid' },
-                        filteredFonts.map(font => React.createElement('div', { key: font.name, className: `font-opt ${settings.bodyFontName === font.name || settings.displayFontName === font.name ? 'active' : ''}` },
+                        filteredFonts.map(font => React.createElement('div', { key: font.name, className: `font-opt ${s.bodyFontName === font.name || s.displayFontName === font.name ? 'active' : ''}` },
                             React.createElement('div', { className: 'font-opt-name', style: { fontFamily: font.family } }, font.name),
                             React.createElement('div', { className: 'font-opt-sample', style: { fontFamily: font.family } }, 'ตัวอย่างภาษาไทย'),
                             React.createElement('div', { style: { fontSize: 10, color: 'var(--gray-400)', marginBottom: 7 } }, font.category),
@@ -2400,9 +2463,9 @@
                     ),
                     React.createElement('div', { className: 'font-preview-box' },
                         React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 10 } }, React.createElement('i', { className: 'fas fa-eye' }), ' ตัวอย่างการแสดงผล'),
-                        React.createElement('div', { style: { fontFamily: settings.displayFont, fontSize: 22, fontWeight: 600, marginBottom: 8, color: 'var(--gray-800)' } }, 'หัวข้อตัวอย่าง (Display)'),
-                        React.createElement('div', { style: { fontFamily: settings.bodyFont, fontSize: 15, color: 'var(--gray-600)', lineHeight: 1.7 } }, 'ข้อความเนื้อหาที่ใช้ฟอนต์ ', settings.bodyFontName, ' ทดสอบภาษาไทย: ฟอนต์สวย อ่านง่าย สบายตา'),
-                        React.createElement('div', { style: { fontSize: 11, color: 'var(--gray-400)', marginTop: 8 } }, 'หัวข้อ: ', settings.displayFontName, ' · เนื้อหา: ', settings.bodyFontName)
+                        React.createElement('div', { style: { fontFamily: s.displayFont, fontSize: 22, fontWeight: 600, marginBottom: 8, color: 'var(--gray-800)' } }, 'หัวข้อตัวอย่าง (Display)'),
+                        React.createElement('div', { style: { fontFamily: s.bodyFont, fontSize: 15, color: 'var(--gray-600)', lineHeight: 1.7 } }, 'ข้อความเนื้อหาที่ใช้ฟอนต์ ', s.bodyFontName, ' ทดสอบภาษาไทย: ฟอนต์สวย อ่านง่าย สบายตา'),
+                        React.createElement('div', { style: { fontSize: 11, color: 'var(--gray-400)', marginTop: 8 } }, 'หัวข้อ: ', s.displayFontName, ' · เนื้อหา: ', s.bodyFontName)
                     )
                 )
             );
@@ -2561,7 +2624,6 @@
                     return;
                 }
                 try {
-                    // ใช้ Compressor ในการบีบอัดข้อมูล
                     const encodedForm = Compressor.encodeForm(form);
                     if (!encodedForm) {
                         toast.show('ไม่สามารถสร้างลิงก์ได้', 'error');
@@ -2843,14 +2905,28 @@
             useEffect(() => {
                 const loadData = async () => {
                     try {
-                        // โหลดข้อมูลทั้งหมดจาก Google Sheets เท่านั้น (ไม่ใช้ localStorage แล้ว)
+                        // โหลดข้อมูลทั้งหมดจาก Google Sheets
                         const [forms] = await Promise.all([
                             GoogleSheetsService.getForms(),
                             SiteSettingsDB.load()
                         ]);
                         DB.forms = forms;
 
-                        // ตรวจสอบ URL Hash สำหรับฟอร์มที่แชร์มา (แบบบีบอัด)
+                        // Preload ฟอนต์ทั้งหมดเพื่อให้พร้อมใช้งาน
+                        GOOGLE_FONTS.forEach(font => {
+                            const linkId = `font-preload-${font.name.replace(/\s+/g, '-').toLowerCase()}`;
+                            if (!document.getElementById(linkId)) {
+                                const link = document.createElement('link');
+                                link.id = linkId;
+                                link.rel = 'preload';
+                                link.as = 'style';
+                                link.href = `https://fonts.googleapis.com/css2?family=${font.name.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`;
+                                link.onload = () => link.rel = 'stylesheet';
+                                document.head.appendChild(link);
+                            }
+                        });
+
+                        // ตรวจสอบ URL Hash สำหรับฟอร์มที่แชร์มา
                         const hash = window.location.hash.substring(1);
                         if (hash && hash.startsWith('form=')) {
                             try {
@@ -2861,7 +2937,6 @@
                                     const existingIndex = DB.forms.findIndex(f => f.id === sharedForm.id);
                                     if (existingIndex === -1) {
                                         DB.forms.push(sharedForm);
-                                        // บันทึกฟอร์มที่แชร์มาเข้า Google Sheets เพื่อให้ทุกเบราว์เซอร์เห็น
                                         await GoogleSheetsService.saveForm(sharedForm);
                                     }
                                     setFormId(sharedForm.id);
@@ -2872,7 +2947,7 @@
                             }
                         }
 
-                        // ตรวจสอบ Query Parameter (แบบเดิม)
+                        // ตรวจสอบ Query Parameter
                         const params = new URLSearchParams(window.location.search);
                         const fid = params.get('form');
                         if (fid) {
@@ -2892,7 +2967,6 @@
                 loadData();
             }, []);
 
-
             if (loading) {
                 return React.createElement('div', { className: 'login-wrap' },
                     React.createElement('div', { className: 'login-card' },
@@ -2905,7 +2979,7 @@
             return React.createElement(React.Fragment, null,
                 React.createElement(ToastContainer, { toasts: toast.toasts }),
                 mode !== 'login' && React.createElement(Navbar, { mode: mode, setMode: setMode, adminLoggedIn: admin, setAdminLoggedIn: setAdmin }),
-                mode === 'home' && React.createElement(HomePage, { setMode: setMode, setCurrentFormId: setFormId }),
+                mode === 'home' && React.createElement(HomePage, { setMode: setMode }),
                 mode === 'formlist' && React.createElement(FormListPage, { setMode: setMode, setCurrentFormId: setFormId }),
                 mode === 'fillform' && React.createElement(FillFormPage, { formId: formId, setMode: setMode, toast: toast }),
                 mode === 'login' && (admin
