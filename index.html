@@ -2130,7 +2130,16 @@
             const perPage = 10;
             const s = SiteSettingsDB.get();
 
-            if (!form) return React.createElement('div', { className: 'page-container' }, React.createElement('div', { className: 'empty-state' }, React.createElement('div', { className: 'empty-icon' }, '🔍'), React.createElement('div', { className: 'empty-title' }, 'ไม่พบฟอร์มนี้')));
+            if (!form) return React.createElement('div', { className: 'page-container' },
+                React.createElement('div', { className: 'empty-state' },
+                    React.createElement('div', { className: 'empty-icon' }, '🔍'),
+                    React.createElement('div', { className: 'empty-title' }, 'ไม่พบฟอร์มนี้'),
+                    React.createElement('div', { className: 'empty-text' }, 'ลิงก์นี้อาจไม่ถูกต้อง หรือฟอร์มถูกลบไปแล้ว'),
+                    React.createElement('button', { className: 'btn btn-primary mt-4', onClick: () => setMode('home') },
+                        React.createElement('i', { className: 'fas fa-home' }), ' กลับหน้าแรก'
+                    )
+                )
+            );
 
             const theme = getFormTheme(form);
             const totalQPages = Math.ceil(form.questions.length / perPage);
@@ -2514,12 +2523,32 @@
             const total = Math.ceil(forms.length / perPage);
             const items = forms.slice((page - 1) * perPage, page * perPage);
             const s = SiteSettingsDB.get();
+
             const copyUrl = (id) => {
-                const url = `${window.location.origin}${window.location.pathname}?form=${id}`;
-                navigator.clipboard?.writeText(url).catch(() => { });
-                toast.show('คัดลอก URL แล้ว 📋');
-                Swal.fire({ icon: 'success', title: 'คัดลอกสำเร็จ!', text: 'URL ถูกคัดลอกแล้ว', confirmButtonColor: SiteSettingsDB.get().primaryColor, timer: 2000 });
+                const form = forms.find(f => f.id === id);
+                if (!form) {
+                    toast.show('ไม่พบข้อมูลฟอร์ม', 'error');
+                    return;
+                }
+                try {
+                    const formJson = JSON.stringify(form);
+                    const encodedForm = btoa(encodeURIComponent(formJson));
+                    const url = `${window.location.origin}${window.location.pathname}#form=${encodedForm}`;
+                    navigator.clipboard?.writeText(url).catch(() => { });
+                    toast.show('คัดลอก URL สำหรับแชร์แล้ว 📋');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'คัดลอกสำเร็จ!',
+                        text: 'URL นี้สามารถใช้เปิดฟอร์มได้แม้ในเครื่องที่ไม่มีข้อมูล',
+                        confirmButtonColor: SiteSettingsDB.get().primaryColor,
+                        timer: 3000
+                    });
+                } catch (e) {
+                    toast.show('เกิดข้อผิดพลาดในการสร้างลิงก์', 'error');
+                    console.error(e);
+                }
             };
+
             return React.createElement('div', null,
                 React.createElement('div', { className: 'page-header' },
                     React.createElement('div', null, React.createElement('div', { className: 'page-title', style: { fontFamily: s.displayFont } }, 'ฟอร์มทั้งหมด'), React.createElement('div', { className: 'page-subtitle' }, forms.length, ' ฟอร์ม')),
@@ -2550,8 +2579,8 @@
                             ),
                             React.createElement('div', { className: 'url-box', onClick: () => copyUrl(form.id) },
                                 React.createElement('i', { className: 'fas fa-link' }),
-                                React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '?form=', form.id),
-                                React.createElement('i', { className: 'fas fa-copy', style: { opacity: 0.5 } })
+                                React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, 'คลิกเพื่อคัดลอก URL สำหรับแชร์'),
+                                React.createElement('i', { className: 'fas fa-copy', style: { opacity: 0.7 } })
                             ),
                             React.createElement('div', { className: 'form-card-footer' },
                                 React.createElement('button', { className: 'btn btn-ghost btn-sm', style: { flex: 1 }, onClick: () => onEdit(form) }, React.createElement('i', { className: 'fas fa-edit' }), ' แก้ไข'),
@@ -2781,6 +2810,39 @@
                     try {
                         const forms = await GoogleSheetsService.getForms();
                         DB.forms = forms;
+
+                        // ตรวจสอบ URL Hash สำหรับฟอร์มที่แชร์มา
+                        const hash = window.location.hash.substring(1);
+                        if (hash && hash.startsWith('form=')) {
+                            try {
+                                const encodedForm = hash.substring(5);
+                                const formJson = decodeURIComponent(atob(encodedForm));
+                                const sharedForm = JSON.parse(formJson);
+
+                                // ตรวจสอบว่าฟอร์มนี้มีอยู่ใน DB หรือยัง ถ้าไม่มีให้เพิ่มเข้าไป
+                                const existingIndex = DB.forms.findIndex(f => f.id === sharedForm.id);
+                                if (existingIndex === -1) {
+                                    DB.forms.push(sharedForm);
+                                    await GoogleSheetsService.saveForm(sharedForm);
+                                }
+
+                                setFormId(sharedForm.id);
+                                setMode('fillform');
+                                // เคลียร์ hash เพื่อให้ URL สะอาดขึ้น
+                                // window.location.hash = '';
+                            } catch (e) {
+                                console.error('Failed to decode form from hash', e);
+                            }
+                        }
+
+                        // ตรวจสอบ Query Parameter
+                        const params = new URLSearchParams(window.location.search);
+                        const fid = params.get('form');
+                        if (fid) {
+                            setFormId(fid);
+                            setMode('fillform');
+                        }
+
                         forceUpdate({});
                     } catch (error) {
                         console.error('Failed to load forms:', error);
@@ -2790,13 +2852,6 @@
                 };
 
                 loadData();
-
-                const params = new URLSearchParams(window.location.search);
-                const fid = params.get('form');
-                if (fid) {
-                    setFormId(fid);
-                    setMode('fillform');
-                }
             }, []);
 
             useEffect(() => {
