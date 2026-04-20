@@ -13,12 +13,15 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <!-- เพิ่ม LZ-String library สำหรับบีบอัดข้อมูล -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
+        /* CSS เดิมทั้งหมด - เหมือนเดิมทุกประการ */
         :root {
             --pink-50: #fff0f6;
             --pink-100: #ffe3ef;
@@ -1716,9 +1719,7 @@
 
         // ========== GOOGLE SHEETS CONFIGURATION ==========
         const GOOGLE_SHEETS_CONFIG = {
-            // ใส่ URL ของ Google Apps Script Web App ที่นี่
             scriptURL: 'https://script.google.com/macros/s/AKfycby84tj-fYDP3T0NzCcYalPw51y6Q8VxaFIx99boUt_AzZRW_RpHyVq2_c_vUTz2zjy28g/exec',
-            // หรือถ้ายังไม่ได้ตั้งค่า จะใช้ localStorage แทน
             useLocalStorage: true
         };
 
@@ -1803,7 +1804,6 @@
             }
         };
 
-        // เริ่มต้นข้อมูลว่าง
         const INITIAL_FORMS = [];
 
         const GOOGLE_FONTS = [
@@ -1912,7 +1912,46 @@
             })
         };
 
-        // ฐานข้อมูลหลัก
+        // ========== ฟังก์ชันบีบอัดและขยายข้อมูล ==========
+        const Compressor = {
+            // เข้ารหัสฟอร์มสำหรับใส่ใน URL (บีบอัด + Base64)
+            encodeForm(form) {
+                try {
+                    // แปลงเป็น JSON
+                    const jsonStr = JSON.stringify(form);
+                    // บีบอัดด้วย LZ-String (ใช้โหมด UTF16 เพื่อให้เข้ากับ URL ได้ดี)
+                    const compressed = LZString.compressToUTF16(jsonStr);
+                    // แปลงเป็น Base64 URL-safe
+                    return btoa(compressed)
+                        .replace(/\+/g, '-')
+                        .replace(/\//g, '_')
+                        .replace(/=+$/, '');
+                } catch (e) {
+                    console.error('Encode error:', e);
+                    return null;
+                }
+            },
+
+            // ถอดรหัสจาก URL กลับเป็นฟอร์ม
+            decodeForm(encoded) {
+                try {
+                    // แปลง Base64 URL-safe กลับเป็นปกติ
+                    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+                    while (base64.length % 4) base64 += '=';
+
+                    // ถอดรหัส Base64
+                    const compressed = atob(base64);
+                    // ขยายข้อมูล
+                    const jsonStr = LZString.decompressFromUTF16(compressed);
+                    // แปลงกลับเป็น Object
+                    return JSON.parse(jsonStr);
+                } catch (e) {
+                    console.error('Decode error:', e);
+                    return null;
+                }
+            }
+        };
+
         const DB = {
             forms: INITIAL_FORMS,
             adminPassword: 'admin1234'
@@ -2531,15 +2570,20 @@
                     return;
                 }
                 try {
-                    const formJson = JSON.stringify(form);
-                    const encodedForm = btoa(encodeURIComponent(formJson));
+                    // ใช้ Compressor ในการบีบอัดข้อมูล
+                    const encodedForm = Compressor.encodeForm(form);
+                    if (!encodedForm) {
+                        toast.show('ไม่สามารถสร้างลิงก์ได้', 'error');
+                        return;
+                    }
+
                     const url = `${window.location.origin}${window.location.pathname}#form=${encodedForm}`;
                     navigator.clipboard?.writeText(url).catch(() => { });
-                    toast.show('คัดลอก URL สำหรับแชร์แล้ว 📋');
+                    toast.show('📋 คัดลอก URL สำหรับแชร์แล้ว! (URL สั้นลงด้วยการบีบอัด)', 'success');
                     Swal.fire({
                         icon: 'success',
                         title: 'คัดลอกสำเร็จ!',
-                        text: 'URL นี้สามารถใช้เปิดฟอร์มได้แม้ในเครื่องที่ไม่มีข้อมูล',
+                        html: `URL นี้สั้นลงด้วยการบีบอัดข้อมูล<br><small style="opacity:0.7">สามารถแชร์ให้ใครก็ได้เปิดฟอร์มนี้</small>`,
                         confirmButtonColor: SiteSettingsDB.get().primaryColor,
                         timer: 3000
                     });
@@ -2579,7 +2623,7 @@
                             ),
                             React.createElement('div', { className: 'url-box', onClick: () => copyUrl(form.id) },
                                 React.createElement('i', { className: 'fas fa-link' }),
-                                React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, 'คลิกเพื่อคัดลอก URL สำหรับแชร์'),
+                                React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '📎 คลิกเพื่อคัดลอก URL สำหรับแชร์ (บีบอัดแล้ว)'),
                                 React.createElement('i', { className: 'fas fa-copy', style: { opacity: 0.7 } })
                             ),
                             React.createElement('div', { className: 'form-card-footer' },
@@ -2811,31 +2855,30 @@
                         const forms = await GoogleSheetsService.getForms();
                         DB.forms = forms;
 
-                        // ตรวจสอบ URL Hash สำหรับฟอร์มที่แชร์มา
+                        // ตรวจสอบ URL Hash สำหรับฟอร์มที่แชร์มา (แบบบีบอัด)
                         const hash = window.location.hash.substring(1);
                         if (hash && hash.startsWith('form=')) {
                             try {
                                 const encodedForm = hash.substring(5);
-                                const formJson = decodeURIComponent(atob(encodedForm));
-                                const sharedForm = JSON.parse(formJson);
+                                const sharedForm = Compressor.decodeForm(encodedForm);
 
-                                // ตรวจสอบว่าฟอร์มนี้มีอยู่ใน DB หรือยัง ถ้าไม่มีให้เพิ่มเข้าไป
-                                const existingIndex = DB.forms.findIndex(f => f.id === sharedForm.id);
-                                if (existingIndex === -1) {
-                                    DB.forms.push(sharedForm);
-                                    await GoogleSheetsService.saveForm(sharedForm);
+                                if (sharedForm) {
+                                    // ตรวจสอบว่าฟอร์มนี้มีอยู่ใน DB หรือยัง
+                                    const existingIndex = DB.forms.findIndex(f => f.id === sharedForm.id);
+                                    if (existingIndex === -1) {
+                                        DB.forms.push(sharedForm);
+                                        await GoogleSheetsService.saveForm(sharedForm);
+                                    }
+
+                                    setFormId(sharedForm.id);
+                                    setMode('fillform');
                                 }
-
-                                setFormId(sharedForm.id);
-                                setMode('fillform');
-                                // เคลียร์ hash เพื่อให้ URL สะอาดขึ้น
-                                // window.location.hash = '';
                             } catch (e) {
                                 console.error('Failed to decode form from hash', e);
                             }
                         }
 
-                        // ตรวจสอบ Query Parameter
+                        // ตรวจสอบ Query Parameter (แบบเดิม)
                         const params = new URLSearchParams(window.location.search);
                         const fid = params.get('form');
                         if (fid) {
